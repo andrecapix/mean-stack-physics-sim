@@ -36,7 +36,9 @@
       "Bash(pkill:*)",
       "Bash(netstat:*)",
       "Bash(taskkill:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(npm start:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
