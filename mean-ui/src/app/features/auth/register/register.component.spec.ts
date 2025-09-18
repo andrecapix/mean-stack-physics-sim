@@ -21,7 +21,7 @@ describe('RegisterComponent', () => {
   let authService: jasmine.SpyObj<AuthService>;
   let router: jasmine.SpyObj<Router>;
 
-  const mockAuthResponse: AuthResponse = {
+  const mockRegisterResponse = {
     accessToken: 'jwt-token',
     user: {
       id: 'user123',
@@ -161,7 +161,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should call authService.register with form values when form is valid', () => {
-      authService.register.and.returnValue(of(mockAuthResponse));
+      authService.register.and.returnValue(of(mockRegisterResponse));
 
       component.onSubmit();
 
@@ -174,7 +174,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should navigate to dashboard on successful registration', () => {
-      authService.register.and.returnValue(of(mockAuthResponse));
+      authService.register.and.returnValue(of(mockRegisterResponse));
 
       component.onSubmit();
 
@@ -182,7 +182,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should set loading state during registration', () => {
-      authService.register.and.returnValue(of(mockAuthResponse));
+      authService.register.and.returnValue(of(mockRegisterResponse));
 
       expect(component.isLoading()).toBeFalse();
 
@@ -270,7 +270,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should clear error message when form values change', () => {
-      component['errorMessageSignal'].set('Some error');
+      component.errorMessage.set('Some error');
       expect(component.errorMessage()).toBe('Some error');
 
       component.registerForm.get('email')?.setValue('new@example.com');
@@ -316,7 +316,7 @@ describe('RegisterComponent', () => {
 
   describe('Template integration', () => {
     it('should display error message in template when present', () => {
-      component['errorMessageSignal'].set('Test error message');
+      component.errorMessage.set('Test error message');
       fixture.detectChanges();
 
       const errorElement = fixture.nativeElement.querySelector('.error-message');

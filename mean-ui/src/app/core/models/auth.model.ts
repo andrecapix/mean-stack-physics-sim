@@ -34,3 +34,8 @@ export interface RefreshTokenRequest {
 export interface RefreshTokenResponse {
   accessToken: string;
 }
+
+// Aliases for test compatibility
+export type LoginDto = LoginRequest;
+export type RegisterDto = RegisterRequest;
+export type AuthResponse = LoginResponse;

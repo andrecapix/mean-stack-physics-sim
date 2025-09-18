@@ -229,6 +229,7 @@ export class RegisterComponent {
   hidePassword = signal(true);
   hideConfirmPassword = signal(true);
   errorMessage = signal('');
+  isLoading = signal(false);
 
   constructor(
     private fb: FormBuilder,

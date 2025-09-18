@@ -195,7 +195,7 @@ describe('LoginComponent', () => {
 
     it('should clear error message when form values change', () => {
       // Set an error message
-      component['errorMessageSignal'].set('Some error');
+      component.errorMessage.set('Some error');
       expect(component.errorMessage()).toBe('Some error');
 
       // Change form value
@@ -208,7 +208,7 @@ describe('LoginComponent', () => {
 
   describe('Template integration', () => {
     it('should display error message in template when present', () => {
-      component['errorMessageSignal'].set('Test error message');
+      component.errorMessage.set('Test error message');
       fixture.detectChanges();
 
       const errorElement = fixture.nativeElement.querySelector('.error-message');

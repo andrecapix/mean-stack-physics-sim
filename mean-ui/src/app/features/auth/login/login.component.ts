@@ -175,6 +175,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   hidePassword = signal(true);
   errorMessage = signal('');
+  isLoading = signal(false);
 
   constructor(
     private fb: FormBuilder,
@@ -195,11 +196,13 @@ export class LoginComponent {
 
   onSubmit(): void {
     if (this.loginForm.valid) {
+      this.isLoading.set(true);
       this.errorMessage.set('');
       const loginRequest: LoginRequest = this.loginForm.value;
 
       this.authService.login(loginRequest).subscribe({
         next: (response) => {
+          this.isLoading.set(false);
           this.snackBar.open(`Bem-vindo, ${response.user.name}!`, 'Fechar', {
             duration: 3000,
             horizontalPosition: 'right',
@@ -211,6 +214,7 @@ export class LoginComponent {
           this.router.navigate([returnUrl]);
         },
         error: (error) => {
+          this.isLoading.set(false);
           console.error('Login error:', error);
           let errorMsg = 'Erro no login. Tente novamente.';
 
