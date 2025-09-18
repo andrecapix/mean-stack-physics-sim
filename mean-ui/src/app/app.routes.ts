@@ -36,7 +36,16 @@ export const routes: Routes = [
   {
     path: 'simulation',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/simulation/simulation.component').then(m => m.SimulationComponent)
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./features/simulation/simulation.component').then(m => m.SimulationComponent)
+      },
+      {
+        path: 'history',
+        loadComponent: () => import('./features/simulation/history/history.component').then(m => m.HistoryComponent)
+      }
+    ]
   },
   // Admin routes (accessible only for admin users)
   {
