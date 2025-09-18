@@ -38,7 +38,9 @@
       "Bash(taskkill:*)",
       "Bash(powershell:*)",
       "Bash(npm start:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(ng test:*)",
+      "Bash(ng build:*)"
     ],
     "deny": [],
     "ask": []
