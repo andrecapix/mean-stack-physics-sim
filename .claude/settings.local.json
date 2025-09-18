@@ -21,7 +21,10 @@
       "Bash(python -m pytest tests/test_improvements.py -v)",
       "Bash(pip install:*)",
       "Bash(python -m pytest tests/test_improvements.py::TestReturnCoordinateConsistency::test_return_stations_real_distances -v)",
-      "Bash(python test:*)"
+      "Bash(python test:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm test:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
