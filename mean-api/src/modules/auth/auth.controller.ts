@@ -1,17 +1,16 @@
 import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/auth.dto';
+import { LoginDto, RefreshTokenDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { PinoLogger } from 'nestjs-pino';
+import { UsersService } from '@/modules/users/users.service';
+import { CreateUserDto } from '@/modules/users/dto/user.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private authService: AuthService,
-    private logger: PinoLogger,
-  ) {
-    this.logger.setContext(AuthController.name);
-  }
+    private usersService: UsersService,
+  ) {}
 
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
@@ -25,7 +24,23 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refresh(@Body('refreshToken') refreshToken: string) {
-    return this.authService.refreshToken(refreshToken);
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshToken(refreshTokenDto.refreshToken);
+  }
+
+  @Post('register')
+  async register(@Body() createUserDto: CreateUserDto) {
+    const user = await this.usersService.create(createUserDto);
+    console.log('User registered successfully', { userId: (user as any)._id, email: user.email });
+
+    return {
+      message: 'User registered successfully',
+      user: {
+        id: (user as any)._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    };
   }
 }

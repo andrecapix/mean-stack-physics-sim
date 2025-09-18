@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { PinoLogger } from 'nestjs-pino';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '@/modules/users/users.service';
 import { LoginDto } from './dto/auth.dto';
@@ -12,10 +11,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private logger: PinoLogger,
-  ) {
-    this.logger.setContext(AuthService.name);
-  }
+  ) {}
 
   async login(loginDto: LoginDto): Promise<{ accessToken: string; user: any }> {
     const user = await this.validateUser(loginDto.email, loginDto.password);
@@ -41,7 +37,7 @@ export class AuthService {
     // Salvar refresh token no usuário
     await this.usersService.updateRefreshToken(user._id, refreshToken);
 
-    this.logger.info('User logged in successfully', { userId: user._id, email: user.email });
+    console.log('User logged in successfully', { userId: user._id, email: user.email });
 
     return {
       accessToken,
@@ -67,7 +63,7 @@ export class AuthService {
 
   async logout(userId: string): Promise<{ success: boolean }> {
     await this.usersService.updateRefreshToken(userId, null);
-    this.logger.info('User logged out', { userId });
+    console.log('User logged out', { userId });
 
     return { success: true };
   }
