@@ -16,7 +16,8 @@
       "Read(//c/Users/Pinheiro/Downloads/**)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
