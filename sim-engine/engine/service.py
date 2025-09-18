@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List, Dict, Any
-from .rk4 import RK4Solver, TrainPhysics
+from .rk4 import RK4Solver, TrainPhysics, POSITION_TOLERANCE
 import logging
 
 # Configurar logging para debug visual
@@ -47,13 +47,14 @@ class SimulationService:
         logger.info(f"✅ IDA completa - Pontos: {len(outbound_result['time'])}, Tempo final: {outbound_result['final_time']:.1f}s")
         logger.info(f"   Posição final ida: {outbound_result['position'][-1]:.0f}m, Velocidade: {outbound_result['velocity'][-1]:.1f}m/s")
 
-        # Simular volta (estações com distâncias recalculadas para volta)
-        # Criar estações da volta: Station 4 fica na posição 0, Station 3 na 5km, etc.
+        # Simular volta com coordenadas espelhadas reais
+        # Espelhamento direto: 0km→0km, 5km→10km, 15km→0km
         return_stations = []
-        for i, (name, pos) in enumerate(reversed(stations)):
-            # Nova distância: Station 4 vira 0km, Station 3 vira 5km, etc.
-            new_distance = i * 5000  # 5km entre estações
-            return_stations.append((name, new_distance))
+        max_distance = stations[-1][1]  # Distância da última estação
+        for name, original_pos in reversed(stations):
+            # Espelhamento direto: preserva distâncias reais
+            mirror_distance = max_distance - original_pos
+            return_stations.append((name, mirror_distance))
 
         logger.info(f"🔄 Estações da volta: {[(name, pos/1000) for name, pos in return_stations]}")
 
@@ -129,19 +130,10 @@ class SimulationService:
 
             segment_distance = end_station[1] - start_station[1]
 
-            # Estimar tempo de viagem para este segmento
-            estimated_time = self._estimate_travel_time(
-                segment_distance, physics.max_speed, physics.initial_accel
-            )
-
-            # Simular movimento até a próxima estação
-            t, pos, vel = solver.solve(
-                initial_position=current_position,
-                initial_velocity=current_velocity,
-                time_span=(current_time, current_time + estimated_time),
-                acceleration_func=physics.acceleration_function,
-                target_position=end_station[1],
-                use_braking=True
+            # Simular movimento até a próxima estação com extensão automática
+            t, pos, vel = self._simulate_with_extension(
+                solver, physics, current_position, current_velocity,
+                end_station[1], current_time
             )
 
             # Encontrar quando chegamos na estação
@@ -157,20 +149,28 @@ class SimulationService:
                 pos[-1] = end_station[1]
                 vel[-1] = 0.0  # Parar na estação
 
-            # Converter posições para volta se necessário
-            if direction == "return":
-                # Para volta: converter posição simulada de volta para posição real
-                # pos simulada de 0 a 15km -> posição real de 15km a 0km
-                pos = total_distance - pos
+            # Posição da estação para pontos de dwell
+            station_position = end_station[1]  # Já em coordenadas corretas (espelhadas se volta)
 
-            # Adicionar aos resultados totais
+            # Adicionar segmento de viagem aos resultados
             all_time.extend(t.tolist())
             all_position.extend(pos.tolist())
             all_velocity.extend(vel.tolist())
 
-            # Registrar chegada na estação
+            # Registrar tempo de chegada
             arrival_time = t[-1]
             departure_time = arrival_time + dwell_time
+
+            # PONTOS DE DWELL OBRIGATÓRIOS:
+            # 1. Ponto de arrival (já existe no final do segmento)
+
+            # 2. Ponto de departure (se houver dwell_time)
+            if dwell_time > 0:
+                all_time.append(departure_time)
+                all_position.append(station_position)
+                all_velocity.append(0.0)
+
+                logger.info(f"   Dwell na {end_station[0]}: {arrival_time:.1f}s → {departure_time:.1f}s ({dwell_time:.1f}s)")
 
             schedule.append({
                 "station": end_station[0],
@@ -180,7 +180,7 @@ class SimulationService:
 
             # Atualizar para próximo segmento
             current_time = departure_time
-            current_position = end_station[1]
+            current_position = end_station[1]  # Posição simulada (antes de conversão)
             current_velocity = 0.0
 
         return {
@@ -269,6 +269,42 @@ class SimulationService:
                 logger.info(f"   Período de {duration:.1f}s")
         else:
             logger.warning("⚠️  Terminal layover pode não estar visível")
+
+    def _simulate_with_extension(self, solver: RK4Solver, physics: TrainPhysics,
+                               start_pos: float, start_vel: float, target_pos: float,
+                               start_time: float, max_extensions: int = 3):
+        """Simula com extensão automática até atingir target"""
+
+        segment_distance = abs(target_pos - start_pos)
+        estimated_time = self._estimate_travel_time(
+            segment_distance, physics.max_speed, physics.initial_accel
+        )
+        current_span = estimated_time
+
+        for attempt in range(max_extensions + 1):
+            t, pos, vel = solver.solve(
+                initial_position=start_pos,
+                initial_velocity=start_vel,
+                time_span=(start_time, start_time + current_span),
+                acceleration_func=physics.acceleration_function,
+                target_position=target_pos,
+                use_braking=True
+            )
+
+            # Verificar se chegou próximo do alvo
+            final_distance = abs(pos[-1] - target_pos)
+            if final_distance < POSITION_TOLERANCE:
+                logger.info(f"   Chegada bem-sucedida em {attempt+1} tentativa(s): distância final {final_distance:.2f}m")
+                break
+
+            # Estender tempo para próxima tentativa
+            current_span *= 1.5
+            logger.warning(f"   Estendendo tempo de simulação para {current_span:.1f}s (tentativa {attempt+1})")
+
+        if final_distance >= POSITION_TOLERANCE:
+            logger.error(f"   ⚠️  Falha ao alcançar target após {max_extensions+1} tentativas. Distância final: {final_distance:.2f}m")
+
+        return t, pos, vel
 
     def _find_arrival_index(self, positions: np.ndarray, target_position: float) -> int:
         """Encontra o índice onde o trem chega na estação"""

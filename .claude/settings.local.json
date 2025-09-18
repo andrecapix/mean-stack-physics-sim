@@ -16,7 +16,12 @@
       "Read(//c/Users/Pinheiro/Downloads/**)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git checkout:*)",
+      "Bash(python -m pytest tests/test_improvements.py -v)",
+      "Bash(pip install:*)",
+      "Bash(python -m pytest tests/test_improvements.py::TestReturnCoordinateConsistency::test_return_stations_real_distances -v)",
+      "Bash(python test:*)"
     ],
     "deny": [],
     "ask": []
