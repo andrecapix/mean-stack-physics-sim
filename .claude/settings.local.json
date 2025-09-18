@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Pinheiro/Desktop/0000_Otmza_Program_Studies/Referencias_Fase_2_MEAN_Stack/From_GPT/**)",
+      "Read(//c/Users/Pinheiro/Desktop/0000_Otmza_Program_Studies/Referencias_Fase_2_MEAN_Stack/Referencias_Iniciais_JS/**)",
+      "WebFetch(domain:angular.dev)",
+      "WebFetch(domain:docs.nestjs.com)",
+      "WebSearch",
+      "WebFetch(domain:www.anthropic.com)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker:*)",
+      "Bash(curl:*)",
+      "Read(//c/Users/Pinheiro/Desktop/0000_Otmza_Program_Studies/Referencias_Fase_2_MEAN_Stack/Imagens/**)",
+      "WebFetch(domain:www.chartjs.org)",
+      "Bash(npm install)",
+      "Read(//c/Users/Pinheiro/Downloads/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
