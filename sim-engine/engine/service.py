@@ -87,8 +87,47 @@ class SimulationService:
         logger.info(f"   Layover: {len(layover_time)} pontos")
         logger.info(f"   Volta: {len(return_result['time'])} pontos")
 
+        # Ajustar posições da volta para manter continuidade
+        # A volta começa na última posição da ida/layover
+        last_outbound_position = layover_position[-1] if layover_position else outbound_result["position"][-1]
+
+        # Corrigir coordenadas da volta: mapear do sistema espelhado para sistema absoluto
+        # Na volta, o trem deve ir de last_outbound_position de volta para 0m
+        adjusted_return_positions = []
+
+        if len(return_result["position"]) > 0:
+            # As posições da volta estão em coordenadas "espelhadas"
+            # Precisamos mapear elas de volta para o sistema absoluto original
+            return_start_pos = return_result["position"][0]  # Primeira posição da volta (no sistema espelhado)
+            return_end_pos = return_result["position"][-1]   # Última posição da volta (no sistema espelhado)
+
+            # Distância total percorrida na volta (no sistema espelhado)
+            return_distance_traveled = return_end_pos - return_start_pos
+
+            # Mapear cada posição da volta para o sistema absoluto
+            for i, pos in enumerate(return_result["position"]):
+                if i == 0:
+                    # Primeiro ponto: manter continuidade com a ida
+                    adjusted_return_positions.append(last_outbound_position)
+                else:
+                    # Progresso da volta baseado na distância percorrida
+                    distance_from_start = pos - return_start_pos
+                    if return_distance_traveled > 0:
+                        progress = distance_from_start / return_distance_traveled
+                    else:
+                        progress = i / (len(return_result["position"]) - 1)
+
+                    # Posição absoluta: vai linearmente de last_outbound_position até 0
+                    absolute_position = last_outbound_position * (1 - progress)
+                    adjusted_return_positions.append(absolute_position)
+
+        logger.info(f"   🔧 Posições ajustadas da volta: {len(adjusted_return_positions)} pontos")
+        logger.info(f"   📍 Última posição ida: {last_outbound_position:.1f}m")
+        logger.info(f"   📍 Primeira posição volta: {adjusted_return_positions[0]:.1f}m")
+        logger.info(f"   📍 Última posição volta: {adjusted_return_positions[-1]:.1f}m")
+
         combined_time = outbound_result["time"] + layover_time + return_result["time"]
-        combined_position = outbound_result["position"] + layover_position + return_result["position"]
+        combined_position = outbound_result["position"] + layover_position + adjusted_return_positions
         combined_velocity = outbound_result["velocity"] + layover_velocity + return_result["velocity"]
         combined_schedule = outbound_result["schedule"] + return_result["schedule"]
 
