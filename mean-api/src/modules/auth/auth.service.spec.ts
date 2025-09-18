@@ -2,17 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 
-jest.mock('bcryptjs');
+// Mock bcrypt module
+jest.mock('bcrypt', () => ({
+  compare: jest.fn(),
+  hash: jest.fn(),
+}));
 
 describe('AuthService', () => {
-  let service;
-  let usersService;
-  let jwtService;
-  let configService;
+  let service: AuthService;
+  let usersService: jest.Mocked<UsersService>;
+  let jwtService: jest.Mocked<JwtService>;
+  let configService: jest.Mocked<ConfigService>;
 
   const mockUser = {
     _id: 'user123',
@@ -20,7 +24,17 @@ describe('AuthService', () => {
     password: 'hashedPassword123',
     name: 'Test User',
     role: 'user',
-    refreshToken: null,
+    refreshToken: undefined,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    toObject: jest.fn(() => ({
+      _id: 'user123',
+      email: 'test@example.com',
+      name: 'Test User',
+      role: 'user',
+      refreshToken: undefined,
+    })),
   };
 
   beforeEach(async () => {
@@ -53,6 +67,9 @@ describe('AuthService', () => {
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
     configService = module.get(ConfigService);
+
+    // Clear all mock calls before each test
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -61,7 +78,7 @@ describe('AuthService', () => {
 
   describe('validateUser', () => {
     it('should return user data when credentials are valid', async () => {
-      usersService.findByEmail.mockResolvedValue(mockUser);
+      usersService.findByEmail.mockResolvedValue(mockUser as any);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       const result = await service.validateUser('test@example.com', 'password123');
@@ -87,7 +104,7 @@ describe('AuthService', () => {
     });
 
     it('should return null when password is invalid', async () => {
-      usersService.findByEmail.mockResolvedValue(mockUser);
+      usersService.findByEmail.mockResolvedValue(mockUser as any);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       const result = await service.validateUser('test@example.com', 'wrongpassword');
@@ -149,7 +166,7 @@ describe('AuthService', () => {
       const createdUser = { ...mockUser, ...registerDto, password: hashedPassword };
 
       (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
-      usersService.create.mockResolvedValue(createdUser);
+      usersService.create.mockResolvedValue(createdUser as any);
       jwtService.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
       configService.get.mockReturnValueOnce('refresh-secret').mockReturnValueOnce('7d');
       usersService.updateRefreshToken.mockResolvedValue(undefined);
@@ -169,6 +186,7 @@ describe('AuthService', () => {
       expect(usersService.create).toHaveBeenCalledWith({
         ...registerDto,
         password: hashedPassword,
+        role: 'user',
       });
     });
   });
@@ -177,10 +195,11 @@ describe('AuthService', () => {
     it('should return new access token when refresh token is valid', async () => {
       const refreshToken = 'valid-refresh-token';
       const payload = { sub: mockUser._id, email: mockUser.email, role: mockUser.role };
+      const userWithRefreshToken = { ...mockUser, refreshToken };
 
       configService.get.mockReturnValue('refresh-secret');
       jwtService.verify.mockReturnValue(payload);
-      usersService.findById.mockResolvedValue(mockUser);
+      usersService.findById.mockResolvedValue(userWithRefreshToken as any);
       jwtService.sign.mockReturnValue('new-access-token');
 
       const result = await service.refreshToken(refreshToken);

@@ -26,7 +26,17 @@
       "Bash(npm test:*)",
       "Bash(node:*)",
       "Bash(git branch:*)",
-      "Bash(npm run start:dev:*)"
+      "Bash(npm run start:dev:*)",
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(uvicorn:*)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(npm run start:prod:*)",
+      "Bash(npm run lint:*)",
+      "Bash(pkill:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

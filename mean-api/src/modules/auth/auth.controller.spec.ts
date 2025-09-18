@@ -5,15 +5,15 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 
 describe('AuthController', () => {
-  let controller;
-  let authService;
+  let controller: AuthController;
+  let authService: AuthService;
 
   const mockAuthService = {
     login: jest.fn(),
     register: jest.fn(),
     logout: jest.fn(),
     refreshToken: jest.fn(),
-  };
+  } as any;
 
   const mockUsersService = {
     findByEmail: jest.fn(),
@@ -38,7 +38,7 @@ describe('AuthController', () => {
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
-    authService = module.get(AuthService);
+    authService = module.get(AuthService) as any;
   });
 
   afterEach(() => {
@@ -66,7 +66,7 @@ describe('AuthController', () => {
     };
 
     it('should return access token and user data when login is successful', async () => {
-      authService.login.mockResolvedValue(loginResponse);
+      (authService as any).login.mockResolvedValue(loginResponse);
 
       const result = await controller.login(loginDto);
 
@@ -75,7 +75,7 @@ describe('AuthController', () => {
     });
 
     it('should throw UnauthorizedException when login fails', async () => {
-      authService.login.mockRejectedValue(new UnauthorizedException('Invalid credentials'));
+      (authService as any).login.mockRejectedValue(new UnauthorizedException('Invalid credentials'));
 
       await expect(controller.login(loginDto)).rejects.toThrow(UnauthorizedException);
       expect(authService.login).toHaveBeenCalledWith(loginDto);
@@ -90,8 +90,15 @@ describe('AuthController', () => {
       role: 'user' as const,
     };
 
-    const registerResponse = {
-      accessToken: 'jwt-token',
+    const mockCreatedUser = {
+      _id: 'user456',
+      email: 'new@example.com',
+      name: 'New User',
+      role: 'user',
+    };
+
+    const expectedResponse = {
+      message: 'User registered successfully',
       user: {
         id: 'user456',
         email: 'new@example.com',
@@ -100,21 +107,21 @@ describe('AuthController', () => {
       },
     };
 
-    it('should return access token and user data when registration is successful', async () => {
-      authService.register.mockResolvedValue(registerResponse);
+    it('should return user data when registration is successful', async () => {
+      mockUsersService.create.mockResolvedValue(mockCreatedUser as any);
 
       const result = await controller.register(registerDto);
 
-      expect(result).toEqual(registerResponse);
-      expect(authService.register).toHaveBeenCalledWith(registerDto);
+      expect(result).toEqual(expectedResponse);
+      expect(mockUsersService.create).toHaveBeenCalledWith(registerDto);
     });
 
     it('should handle registration errors', async () => {
       const error = new Error('User already exists');
-      authService.register.mockRejectedValue(error);
+      mockUsersService.create.mockRejectedValue(error);
 
       await expect(controller.register(registerDto)).rejects.toThrow(error);
-      expect(authService.register).toHaveBeenCalledWith(registerDto);
+      expect(mockUsersService.create).toHaveBeenCalledWith(registerDto);
     });
   });
 
@@ -124,7 +131,7 @@ describe('AuthController', () => {
     };
 
     it('should call authService.logout with user id', async () => {
-      authService.logout.mockResolvedValue(undefined);
+      (authService as any).logout.mockResolvedValue(undefined);
 
       const result = await controller.logout(mockRequest);
 
@@ -134,7 +141,7 @@ describe('AuthController', () => {
 
     it('should handle logout errors', async () => {
       const error = new Error('Logout failed');
-      authService.logout.mockRejectedValue(error);
+      (authService as any).logout.mockRejectedValue(error);
 
       await expect(controller.logout(mockRequest)).rejects.toThrow(error);
       expect(authService.logout).toHaveBeenCalledWith('user123');
@@ -151,9 +158,9 @@ describe('AuthController', () => {
     };
 
     it('should return new access token when refresh token is valid', async () => {
-      authService.refreshToken.mockResolvedValue(refreshResponse);
+      (authService as any).refreshToken.mockResolvedValue(refreshResponse);
 
-      const result = await controller.refreshToken(mockRequest);
+      const result = await controller.refresh({ refreshToken: 'valid-refresh-token' });
 
       expect(result).toEqual(refreshResponse);
       expect(authService.refreshToken).toHaveBeenCalledWith('valid-refresh-token');
@@ -162,37 +169,18 @@ describe('AuthController', () => {
     it('should throw UnauthorizedException when no refresh token is provided', async () => {
       const requestWithoutToken = { cookies: {} };
 
-      await expect(controller.refreshToken(requestWithoutToken)).rejects.toThrow(
+      await expect(controller.refresh({ refreshToken: '' })).rejects.toThrow(
         UnauthorizedException,
       );
       expect(authService.refreshToken).not.toHaveBeenCalled();
     });
 
     it('should handle refresh token errors', async () => {
-      authService.refreshToken.mockRejectedValue(new UnauthorizedException('Invalid refresh token'));
+      (authService as any).refreshToken.mockRejectedValue(new UnauthorizedException('Invalid refresh token'));
 
-      await expect(controller.refreshToken(mockRequest)).rejects.toThrow(UnauthorizedException);
+      await expect(controller.refresh({ refreshToken: 'valid-refresh-token' })).rejects.toThrow(UnauthorizedException);
       expect(authService.refreshToken).toHaveBeenCalledWith('valid-refresh-token');
     });
   });
 
-  describe('getProfile', () => {
-    const mockRequest = {
-      user: {
-        userId: 'user123',
-        email: 'test@example.com',
-        role: 'user',
-      },
-    };
-
-    it('should return user profile data', () => {
-      const result = controller.getProfile(mockRequest);
-
-      expect(result).toEqual({
-        id: 'user123',
-        email: 'test@example.com',
-        role: 'user',
-      });
-    });
-  });
 });

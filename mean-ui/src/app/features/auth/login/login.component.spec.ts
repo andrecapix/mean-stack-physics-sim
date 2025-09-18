@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
+import { signal } from '@angular/core';
 
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../../core/services/auth.service';
@@ -18,7 +19,7 @@ describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
   let authService: jasmine.SpyObj<AuthService>;
-  let router: jasmine.SpyObj<Router>;
+  let router: Router;
 
   const mockAuthResponse: AuthResponse = {
     accessToken: 'jwt-token',
@@ -31,7 +32,12 @@ describe('LoginComponent', () => {
   };
 
   beforeEach(async () => {
-    const authServiceSpy = jasmine.createSpyObj('AuthService', ['login']);
+    const authServiceSpy = jasmine.createSpyObj('AuthService', ['login'], {
+      isLoading: signal(false),
+      currentUser: signal(null),
+      isAuthenticated: signal(false),
+      isAdmin: signal(false)
+    });
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
@@ -47,15 +53,15 @@ describe('LoginComponent', () => {
         RouterTestingModule
       ],
       providers: [
-        { provide: AuthService, useValue: authServiceSpy },
-        { provide: Router, useValue: routerSpy }
+        { provide: AuthService, useValue: authServiceSpy }
       ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
     authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
-    router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate');
     fixture.detectChanges();
   });
 

@@ -10,7 +10,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { AuthService, LoginRequest } from '../../../core/services/auth.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { LoginRequest } from '../../../core/models/auth.model';
 
 @Component({
   selector: 'app-login',

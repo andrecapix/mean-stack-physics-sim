@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
+import { signal } from '@angular/core';
 
 import { RegisterComponent } from './register.component';
 import { AuthService } from '../../../core/services/auth.service';
@@ -19,7 +20,7 @@ describe('RegisterComponent', () => {
   let component: RegisterComponent;
   let fixture: ComponentFixture<RegisterComponent>;
   let authService: jasmine.SpyObj<AuthService>;
-  let router: jasmine.SpyObj<Router>;
+  let router: Router;
 
   const mockRegisterResponse = {
     accessToken: 'jwt-token',
@@ -27,12 +28,17 @@ describe('RegisterComponent', () => {
       id: 'user123',
       email: 'test@example.com',
       name: 'Test User',
-      role: 'user'
+      role: 'user' as const
     }
   };
 
   beforeEach(async () => {
-    const authServiceSpy = jasmine.createSpyObj('AuthService', ['register']);
+    const authServiceSpy = jasmine.createSpyObj('AuthService', ['register'], {
+      isLoading: signal(false),
+      currentUser: signal(null),
+      isAuthenticated: signal(false),
+      isAdmin: signal(false)
+    });
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
@@ -49,15 +55,15 @@ describe('RegisterComponent', () => {
         RouterTestingModule
       ],
       providers: [
-        { provide: AuthService, useValue: authServiceSpy },
-        { provide: Router, useValue: routerSpy }
+        { provide: AuthService, useValue: authServiceSpy }
       ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegisterComponent);
     component = fixture.componentInstance;
     authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
-    router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate');
     fixture.detectChanges();
   });
 

@@ -10,11 +10,16 @@ describe('Auth Guards', () => {
   let router: jasmine.SpyObj<Router>;
   let route: ActivatedRouteSnapshot;
   let state: RouterStateSnapshot;
+  let isAuthenticatedSignal: any;
+  let isAdminSignal: any;
 
   beforeEach(() => {
+    isAuthenticatedSignal = signal(false);
+    isAdminSignal = signal(false);
+
     const authServiceSpy = jasmine.createSpyObj('AuthService', ['getToken'], {
-      isAuthenticated: signal(false),
-      isAdmin: signal(false)
+      isAuthenticated: isAuthenticatedSignal,
+      isAdmin: isAdminSignal
     });
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
@@ -34,9 +39,7 @@ describe('Auth Guards', () => {
   describe('authGuard', () => {
     it('should allow access when user is authenticated', () => {
       // Set up authenticated state
-      Object.defineProperty(authService, 'isAuthenticated', {
-        value: signal(true)
-      });
+      isAuthenticatedSignal.set(true);
 
       const result = TestBed.runInInjectionContext(() =>
         authGuard(route, state)
@@ -48,9 +51,7 @@ describe('Auth Guards', () => {
 
     it('should redirect to login when user is not authenticated', () => {
       // Set up unauthenticated state
-      Object.defineProperty(authService, 'isAuthenticated', {
-        value: signal(false)
-      });
+      isAuthenticatedSignal.set(false);
 
       const result = TestBed.runInInjectionContext(() =>
         authGuard(route, state)
@@ -64,12 +65,8 @@ describe('Auth Guards', () => {
   describe('adminGuard', () => {
     it('should allow access when user is authenticated and admin', () => {
       // Set up authenticated admin state
-      Object.defineProperty(authService, 'isAuthenticated', {
-        value: signal(true)
-      });
-      Object.defineProperty(authService, 'isAdmin', {
-        value: signal(true)
-      });
+      isAuthenticatedSignal.set(true);
+      isAdminSignal.set(true);
 
       const result = TestBed.runInInjectionContext(() =>
         adminGuard(route, state)
@@ -81,12 +78,8 @@ describe('Auth Guards', () => {
 
     it('should redirect to dashboard when user is authenticated but not admin', () => {
       // Set up authenticated non-admin state
-      Object.defineProperty(authService, 'isAuthenticated', {
-        value: signal(true)
-      });
-      Object.defineProperty(authService, 'isAdmin', {
-        value: signal(false)
-      });
+      isAuthenticatedSignal.set(true);
+      isAdminSignal.set(false);
 
       const result = TestBed.runInInjectionContext(() =>
         adminGuard(route, state)
@@ -98,12 +91,8 @@ describe('Auth Guards', () => {
 
     it('should redirect to login when user is not authenticated', () => {
       // Set up unauthenticated state
-      Object.defineProperty(authService, 'isAuthenticated', {
-        value: signal(false)
-      });
-      Object.defineProperty(authService, 'isAdmin', {
-        value: signal(false)
-      });
+      isAuthenticatedSignal.set(false);
+      isAdminSignal.set(false);
 
       const result = TestBed.runInInjectionContext(() =>
         adminGuard(route, state)
@@ -117,9 +106,7 @@ describe('Auth Guards', () => {
   describe('guestGuard', () => {
     it('should allow access when user is not authenticated', () => {
       // Set up unauthenticated state
-      Object.defineProperty(authService, 'isAuthenticated', {
-        value: signal(false)
-      });
+      isAuthenticatedSignal.set(false);
 
       const result = TestBed.runInInjectionContext(() =>
         guestGuard(route, state)
@@ -131,9 +118,7 @@ describe('Auth Guards', () => {
 
     it('should redirect to dashboard when user is authenticated', () => {
       // Set up authenticated state
-      Object.defineProperty(authService, 'isAuthenticated', {
-        value: signal(true)
-      });
+      isAuthenticatedSignal.set(true);
 
       const result = TestBed.runInInjectionContext(() =>
         guestGuard(route, state)
@@ -146,12 +131,8 @@ describe('Auth Guards', () => {
 
   describe('Integration scenarios', () => {
     it('should handle rapid authentication state changes', () => {
-      const isAuthenticatedSignal = signal(false);
-      Object.defineProperty(authService, 'isAuthenticated', {
-        value: isAuthenticatedSignal
-      });
-
       // Initially unauthenticated
+      isAuthenticatedSignal.set(false);
       let result = TestBed.runInInjectionContext(() =>
         authGuard(route, state)
       );
@@ -166,17 +147,10 @@ describe('Auth Guards', () => {
     });
 
     it('should handle admin role changes', () => {
-      const isAuthenticatedSignal = signal(true);
-      const isAdminSignal = signal(false);
-
-      Object.defineProperty(authService, 'isAuthenticated', {
-        value: isAuthenticatedSignal
-      });
-      Object.defineProperty(authService, 'isAdmin', {
-        value: isAdminSignal
-      });
-
       // Initially regular user
+      isAuthenticatedSignal.set(true);
+      isAdminSignal.set(false);
+
       let result = TestBed.runInInjectionContext(() =>
         adminGuard(route, state)
       );

@@ -23,7 +23,7 @@ export interface LoginResponse {
 }
 
 export interface RegisterResponse {
-  message: string;
+  accessToken: string;
   user: User;
 }
 

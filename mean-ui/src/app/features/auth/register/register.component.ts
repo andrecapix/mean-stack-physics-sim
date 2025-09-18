@@ -11,7 +11,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { AuthService, RegisterRequest } from '../../../core/services/auth.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { RegisterRequest } from '../../../core/models/auth.model';
 
 @Component({
   selector: 'app-register',

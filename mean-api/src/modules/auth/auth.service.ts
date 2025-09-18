@@ -3,7 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '@/modules/users/users.service';
-import { LoginDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto } from './dto/auth.dto';
+import { UserDocument } from '@/database/user.schema';
 
 @Injectable()
 export class AuthService {
@@ -50,11 +51,56 @@ export class AuthService {
     };
   }
 
+  async register(registerDto: RegisterDto): Promise<{ accessToken: string; user: any }> {
+    // Hash password
+    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+
+    // Create user
+    const user: UserDocument = await this.usersService.create({
+      ...registerDto,
+      password: hashedPassword,
+      role: registerDto.role || 'user',
+    });
+
+    // Generate tokens
+    const userId = (user as any)._id.toString();
+    const payload = {
+      email: user.email,
+      sub: userId,
+      role: user.role,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('REFRESH_SECRET'),
+      expiresIn: this.configService.get<string>('REFRESH_EXPIRATION', '7d'),
+    });
+
+    // Save refresh token
+    await this.usersService.updateRefreshToken(userId, refreshToken);
+
+    console.log('User registered successfully', { userId, email: user.email });
+
+    return {
+      accessToken,
+      user: {
+        id: userId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    };
+  }
+
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
 
-    if (user && await bcrypt.compare(password, user.password)) {
-      const { password, ...result } = user.toObject();
+    if (!user) {
+      return null;
+    }
+
+    if (await bcrypt.compare(password, user.password)) {
+      const { password: userPassword, refreshToken, ...result } = user.toObject();
       return result;
     }
 

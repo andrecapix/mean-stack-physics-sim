@@ -3,43 +3,15 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject, tap, catchError, of } from 'rxjs';
 import { environment } from '@/environments/environment';
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'user' | 'admin';
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
-  role?: 'user' | 'admin';
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  user: User;
-}
-
-export interface RegisterResponse {
-  message: string;
-  user: User;
-}
-
-export interface RefreshTokenRequest {
-  refreshToken: string;
-}
-
-export interface RefreshTokenResponse {
-  accessToken: string;
-}
+import {
+  User,
+  LoginRequest,
+  RegisterRequest,
+  LoginResponse,
+  RegisterResponse,
+  RefreshTokenRequest,
+  RefreshTokenResponse
+} from '@/core/models/auth.model';
 
 @Injectable({
   providedIn: 'root'
