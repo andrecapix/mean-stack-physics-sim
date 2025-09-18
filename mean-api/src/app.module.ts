@@ -10,7 +10,7 @@ import { SimulationModule } from './modules/simulation/simulation.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    MongooseModule.forRoot(process.env.MONGO_URI || 'mongodb://mongo:27017/simdb'),
+    MongooseModule.forRoot(process.env.MONGO_URI || 'mongodb://localhost:27017/simdb'),
     HealthModule,
     SimulationModule,
   ],
