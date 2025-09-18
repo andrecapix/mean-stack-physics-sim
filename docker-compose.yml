@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: mean-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: simdb
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - mean-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mean-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mean-network
+
+  sim-engine:
+    build:
+      context: ./sim-engine
+      dockerfile: Dockerfile
+    container_name: sim-engine
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - mean-network
+
+  mean-api:
+    build:
+      context: ./mean-api
+      dockerfile: Dockerfile
+    container_name: mean-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongo:27017/simdb
+      - REDIS_URL=redis://redis:6379
+      - SIM_ENGINE_URL=http://sim-engine:8000
+      - JWT_SECRET=your_jwt_secret_here_change_in_production
+      - JWT_EXPIRATION=15m
+      - REFRESH_SECRET=your_refresh_secret_here_change_in_production
+      - REFRESH_EXPIRATION=7d
+    depends_on:
+      - mongo
+      - redis
+      - sim-engine
+    networks:
+      - mean-network
+
+  mean-ui:
+    build:
+      context: ./mean-ui
+      dockerfile: Dockerfile
+    container_name: mean-ui
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    environment:
+      - API_URL=http://localhost:3000
+    depends_on:
+      - mean-api
+    networks:
+      - mean-network
+
+volumes:
+  mongo_data:
+  redis_data:
+
+networks:
+  mean-network:
+    driver: bridge
