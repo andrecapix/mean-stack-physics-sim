@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { PinoLogger } from 'nestjs-pino';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '@/modules/users/users.service';
-import { LoginDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto } from './dto/auth.dto';
+import { UserDocument } from '@/database/user.schema';
 
 @Injectable()
 export class AuthService {
@@ -12,10 +12,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private logger: PinoLogger,
-  ) {
-    this.logger.setContext(AuthService.name);
-  }
+  ) {}
 
   async login(loginDto: LoginDto): Promise<{ accessToken: string; user: any }> {
     const user = await this.validateUser(loginDto.email, loginDto.password);
@@ -41,7 +38,7 @@ export class AuthService {
     // Salvar refresh token no usuário
     await this.usersService.updateRefreshToken(user._id, refreshToken);
 
-    this.logger.info('User logged in successfully', { userId: user._id, email: user.email });
+    console.log('User logged in successfully', { userId: user._id, email: user.email });
 
     return {
       accessToken,
@@ -54,11 +51,56 @@ export class AuthService {
     };
   }
 
+  async register(registerDto: RegisterDto): Promise<{ accessToken: string; user: any }> {
+    // Hash password
+    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+
+    // Create user
+    const user: UserDocument = await this.usersService.create({
+      ...registerDto,
+      password: hashedPassword,
+      role: registerDto.role || 'user',
+    });
+
+    // Generate tokens
+    const userId = (user as any)._id.toString();
+    const payload = {
+      email: user.email,
+      sub: userId,
+      role: user.role,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('REFRESH_SECRET'),
+      expiresIn: this.configService.get<string>('REFRESH_EXPIRATION', '7d'),
+    });
+
+    // Save refresh token
+    await this.usersService.updateRefreshToken(userId, refreshToken);
+
+    console.log('User registered successfully', { userId, email: user.email });
+
+    return {
+      accessToken,
+      user: {
+        id: userId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    };
+  }
+
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
 
-    if (user && await bcrypt.compare(password, user.password)) {
-      const { password, ...result } = user.toObject();
+    if (!user) {
+      return null;
+    }
+
+    if (await bcrypt.compare(password, user.password)) {
+      const { password: userPassword, refreshToken, ...result } = user.toObject();
       return result;
     }
 
@@ -67,7 +109,7 @@ export class AuthService {
 
   async logout(userId: string): Promise<{ success: boolean }> {
     await this.usersService.updateRefreshToken(userId, null);
-    this.logger.info('User logged out', { userId });
+    console.log('User logged out', { userId });
 
     return { success: true };
   }

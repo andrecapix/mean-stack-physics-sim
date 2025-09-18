@@ -14,7 +14,7 @@ export class SimulationService {
     @InjectModel(Simulation.name) private simulationModel: Model<SimulationDocument>,
     private configService: ConfigService,
   ) {
-    this.simEngineUrl = this.configService.get<string>('SIM_ENGINE_URL', 'http://localhost:8000');
+    this.simEngineUrl = this.configService.get<string>('SIM_ENGINE_URL', 'http://127.0.0.1:8000');
   }
 
   async createSimulation(createSimulationDto: CreateSimulationDto, userId?: string): Promise<{ id: string; status: string }> {

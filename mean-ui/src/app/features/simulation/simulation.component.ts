@@ -16,6 +16,8 @@ import annotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'chart.js';
 import { SimulationService, SimulationParamsDto, SimulationResultDto } from '@/core/services/simulation.service';
 import { DataDecimation } from '@/shared/utils/data-decimation';
+import { RegimeAwareDecimation } from '@/shared/utils/regime-aware-decimation';
+import { DEFAULT_DECIMATION_CONFIG } from '@/shared/utils/decimation-config';
 
 @Component({
   selector: 'app-simulation',
@@ -533,17 +535,42 @@ export class SimulationComponent implements OnInit {
 
     console.log(`📊 Dados originais: ${simulation.results.time.length} pontos`);
 
-    // DECIMAR dados APENAS para exibição
-    const positionDecimated = DataDecimation.decimateForDisplay(
+    // DECIMAR dados com consciência de regime
+    const currentParams = this.simulationForm.value;
+    const simulationParams = {
+      max_speed: currentParams.maxVelocity || 30,
+      initial_accel: currentParams.initialAcceleration || 2
+    };
+
+    // Converter schedule para formato esperado
+    const schedule = (simulation.results.schedule || []).map(entry => ({
+      station: entry.station,
+      arrival_time: entry.arrivalTime,
+      departure_time: entry.departureTime
+    }));
+
+    // Usar decimação regime-aware para posição
+    const positionDecimated = RegimeAwareDecimation.decimate(
       simulation.results.time,
       simulation.results.position,
-      1000 // Máximo 1000 pontos para exibição
+      schedule,
+      simulationParams,
+      {
+        ...DEFAULT_DECIMATION_CONFIG,
+        maxPointsForDisplay: 1200 // Orçamento adaptativo
+      }
     );
 
-    const velocityDecimated = DataDecimation.decimateForDisplay(
+    // Usar decimação regime-aware para velocidade
+    const velocityDecimated = RegimeAwareDecimation.decimate(
       simulation.results.time,
       simulation.results.velocity,
-      1000 // Máximo 1000 pontos para exibição
+      schedule,
+      simulationParams,
+      {
+        ...DEFAULT_DECIMATION_CONFIG,
+        maxPointsForDisplay: 1200
+      }
     );
 
     // Armazenar dados decimados para referência
@@ -553,8 +580,9 @@ export class SimulationComponent implements OnInit {
       velocity: velocityDecimated.values
     };
 
-    console.log(`📋 Dados exibidos: ${this.displayData.time.length} pontos`);
+    console.log(`📋 Dados exibidos: ${this.displayData.time.length} pontos (${positionDecimated.time.length} posição, ${velocityDecimated.time.length} velocidade)`);
     console.log(`🔄 Redução: ${((1 - this.displayData.time.length / simulation.results.time.length) * 100).toFixed(1)}%`);
+    console.log(`🎯 Regime-aware: Eventos preservados, regimes otimizados`);
 
     // Adicionar marcadores de estações e layover
     this.addStationMarkers();

@@ -1,11 +1,18 @@
 import numpy as np
 from typing import Tuple, List
 
+# Tolerâncias configuráveis para regimes físicos
+VELOCITY_EPSILON_RATIO = 1e-3  # * max_speed (ex: 0.03 m/s para vmax=30m/s)
+ACCELERATION_EPSILON_RATIO = 1e-3  # * max_accel (ex: 0.003 m/s² para amax=3m/s²)
+POSITION_TOLERANCE = 1.0  # metros (para chegada em estações)
+VELOCITY_STOP_THRESHOLD = 0.1  # m/s (limite para considerar parado)
+
 class RK4Solver:
     """Implementação do método Runge-Kutta de 4ª ordem para simulação física"""
 
     def __init__(self, dt: float = 0.1):
         self.dt = dt
+        self.braking_state = False  # Estado de frenagem com histerese
 
     def solve(self,
               initial_position: float,
@@ -37,24 +44,19 @@ class RK4Solver:
         position[0] = initial_position
         velocity[0] = initial_velocity
 
+        # Reset braking state no início da simulação
+        self.braking_state = False
+
         for i in range(n_steps - 1):
             pos_curr = position[i]
             vel_curr = velocity[i]
             t_curr = t[i]
 
-            # Determinar acelação baseada na proximidade do alvo
-            if use_braking and target_position is not None:
-                distance_to_target = abs(target_position - pos_curr)
-                braking_distance = (vel_curr ** 2) / (2 * 2.0)  # Assumindo desaceleração de 2 m/s²
-
-                if distance_to_target <= braking_distance and vel_curr > 0.5:
-                    # Aplicar frenagem
-                    current_accel = -2.0  # Desaceleração constante
-                else:
-                    # Aceleração normal
-                    current_accel = acceleration_func(t_curr, pos_curr, vel_curr)
-            else:
-                current_accel = acceleration_func(t_curr, pos_curr, vel_curr)
+            # Determinar aceleração com histerese de frenagem
+            current_accel = self._get_acceleration_with_hysteresis(
+                t_curr, pos_curr, vel_curr, acceleration_func,
+                target_position, use_braking
+            )
 
             # RK4 para posição e velocidade
             k1_pos = vel_curr
@@ -79,11 +81,30 @@ class RK4Solver:
                                           acceleration_func, target_position, use_braking)
 
             # Atualização usando RK4
-            position[i + 1] = pos_curr + (self.dt / 6) * (k1_pos + 2*k2_pos + 2*k3_pos + k4_pos)
-            velocity[i + 1] = vel_curr + (self.dt / 6) * (k1_vel + 2*k2_vel + 2*k3_vel + k4_vel)
+            new_position = pos_curr + (self.dt / 6) * (k1_pos + 2*k2_pos + 2*k3_pos + k4_pos)
+            new_velocity = vel_curr + (self.dt / 6) * (k1_vel + 2*k2_vel + 2*k3_vel + k4_vel)
 
-            # Garantir que velocidade esteja dentro dos limites físicos
-            velocity[i + 1] = max(0, velocity[i + 1])
+            # Detectar zero-crossing de velocidade
+            if vel_curr > 0 and new_velocity < 0:
+                # Interpolar para encontrar t* onde v=0
+                zero_time_fraction = vel_curr / (vel_curr - new_velocity)
+
+                # Recalcular posição no ponto exato v=0
+                partial_dt = self.dt * zero_time_fraction
+                position[i + 1] = pos_curr + vel_curr * partial_dt + 0.5 * current_accel * partial_dt**2
+                velocity[i + 1] = 0.0
+
+                # Ajustar array de tempo para refletir parada exata
+                t[i + 1] = t[i] + partial_dt
+
+                # Truncar arrays no ponto de parada
+                t = t[:i + 2]
+                position = position[:i + 2]
+                velocity = velocity[:i + 2]
+                break
+            else:
+                position[i + 1] = new_position
+                velocity[i + 1] = max(0, new_velocity)  # Clamp como backup
 
             # Parar se chegou muito perto do alvo
             if (target_position is not None and
@@ -91,23 +112,35 @@ class RK4Solver:
                 velocity[i + 1] < 0.5):
                 velocity[i + 1] = 0.0
                 position[i + 1] = target_position
+                break
 
         return t, position, velocity
+
+    def _get_acceleration_with_hysteresis(self, t: float, pos: float, vel: float,
+                                         acceleration_func, target_position: float = None,
+                                         use_braking: bool = False) -> float:
+        """Determina a aceleração considerando frenagem com histerese"""
+        if not use_braking or target_position is None:
+            return acceleration_func(t, pos, vel)
+
+        distance_to_target = abs(target_position - pos)
+        braking_distance = (vel ** 2) / (2 * 2.0)  # Desaceleração de 2 m/s²
+
+        # Entrar em frenagem
+        if not self.braking_state and distance_to_target <= braking_distance and vel > 0.5:
+            self.braking_state = True
+
+        # Sair de frenagem apenas quando quase parado
+        if self.braking_state and vel <= VELOCITY_STOP_THRESHOLD:
+            self.braking_state = False
+
+        return -2.0 if self.braking_state else acceleration_func(t, pos, vel)
 
     def _get_acceleration(self, t: float, pos: float, vel: float,
                          acceleration_func, target_position: float = None,
                          use_braking: bool = False) -> float:
-        """Determina a aceleração considerando frenagem se necessário"""
-        if use_braking and target_position is not None:
-            distance_to_target = abs(target_position - pos)
-            braking_distance = (vel ** 2) / (2 * 2.0)  # Desaceleração de 2 m/s²
-
-            if distance_to_target <= braking_distance and vel > 0.5:
-                return -2.0  # Desaceleração constante
-            else:
-                return acceleration_func(t, pos, vel)
-        else:
-            return acceleration_func(t, pos, vel)
+        """Método legado - mantido para compatibilidade"""
+        return self._get_acceleration_with_hysteresis(t, pos, vel, acceleration_func, target_position, use_braking)
 
 class TrainPhysics:
     """Classe para definir a física específica do trem"""
