@@ -45,7 +45,11 @@
       "Bash(git clean:*)",
       "Bash(git fetch:*)",
       "Bash(git restore:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(pip cache:*)"
     ],
     "deny": [],
     "ask": []

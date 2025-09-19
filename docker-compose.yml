@@ -51,13 +51,14 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - MONGO_URI=mongodb://mongo:27017/simdb
-      - REDIS_URL=redis://redis:6379
+      - MONGODB_URI=mongodb://mean-mongo:27017/mean-stack-db
+      - REDIS_URL=redis://mean-redis:6379
       - SIM_ENGINE_URL=http://sim-engine:8000
-      - JWT_SECRET=your_jwt_secret_here_change_in_production
+      - JWT_SECRET=dev_jwt_secret_change_in_production_2024
       - JWT_EXPIRATION=15m
-      - REFRESH_SECRET=your_refresh_secret_here_change_in_production
+      - REFRESH_SECRET=dev_refresh_secret_change_in_production_2024
       - REFRESH_EXPIRATION=7d
+      - CORS_ORIGIN=http://localhost:4200
     depends_on:
       - mongo
       - redis
