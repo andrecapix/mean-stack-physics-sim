@@ -41,7 +41,11 @@
       "Bash(npm start:*)",
       "Bash(cat:*)",
       "Bash(ng test:*)",
-      "Bash(ng build:*)"
+      "Bash(ng build:*)",
+      "Bash(git clean:*)",
+      "Bash(git fetch:*)",
+      "Bash(git restore:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
