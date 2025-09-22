@@ -49,7 +49,9 @@
       "Bash(git ls-tree:*)",
       "Bash(git check-ignore:*)",
       "Bash(npm cache clean:*)",
-      "Bash(pip cache:*)"
+      "Bash(pip cache:*)",
+      "Bash(docker-compose:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

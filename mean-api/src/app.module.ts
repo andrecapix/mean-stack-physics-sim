@@ -5,6 +5,7 @@ import { HealthModule } from './modules/health/health.module';
 import { SimulationModule } from './modules/simulation/simulation.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { AccelerationCurveModule } from './modules/acceleration-curve/acceleration-curve.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { UsersModule } from './modules/users/users.module';
     SimulationModule,
     AuthModule,
     UsersModule,
+    AccelerationCurveModule,
   ],
 })
 export class AppModule {}

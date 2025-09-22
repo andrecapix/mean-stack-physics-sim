@@ -1,0 +1,153 @@
+<div class="acceleration-curve-container">
+  <mat-card class="config-card">
+    <mat-card-header>
+      <mat-card-title>Configuração da Curva de Aceleração</mat-card-title>
+      <mat-card-subtitle>Configure os parâmetros para gerar a curva de aceleração por velocidade</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="curveForm" class="curve-form">
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Velocidade Linear (km/h)</mat-label>
+            <input matInput type="number" formControlName="linearVelocityThreshold" step="1">
+            <mat-hint>Velocidade até onde a aceleração é constante</mat-hint>
+            <mat-error *ngIf="curveForm.get('linearVelocityThreshold')?.hasError('required')">
+              Campo obrigatório
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('linearVelocityThreshold')?.hasError('min')">
+              Valor mínimo: 1 km/h
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('linearVelocityThreshold')?.hasError('max')">
+              Valor máximo: 100 km/h
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Aceleração Inicial (m/s²)</mat-label>
+            <input matInput type="number" formControlName="initialAcceleration" step="0.1">
+            <mat-hint>Aceleração constante até a velocidade linear</mat-hint>
+            <mat-error *ngIf="curveForm.get('initialAcceleration')?.hasError('required')">
+              Campo obrigatório
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('initialAcceleration')?.hasError('min')">
+              Valor mínimo: 0.1 m/s²
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('initialAcceleration')?.hasError('max')">
+              Valor máximo: 3.0 m/s²
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Incremento de Velocidade (km/h)</mat-label>
+            <input matInput type="number" formControlName="velocityIncrement" step="0.1">
+            <mat-hint>Intervalo de cálculo da curva</mat-hint>
+            <mat-error *ngIf="curveForm.get('velocityIncrement')?.hasError('required')">
+              Campo obrigatório
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('velocityIncrement')?.hasError('min')">
+              Valor mínimo: 0.1 km/h
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('velocityIncrement')?.hasError('max')">
+              Valor máximo: 10 km/h
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Fator de Perda</mat-label>
+            <input matInput type="number" formControlName="lossFactor" step="1">
+            <mat-hint>Fator de redução da aceleração</mat-hint>
+            <mat-error *ngIf="curveForm.get('lossFactor')?.hasError('required')">
+              Campo obrigatório
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('lossFactor')?.hasError('min')">
+              Valor mínimo: 1
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('lossFactor')?.hasError('max')">
+              Valor máximo: 1000
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Velocidade Máxima (km/h)</mat-label>
+            <input matInput type="number" formControlName="maxVelocity" step="10">
+            <mat-hint>Limite superior para cálculo da curva</mat-hint>
+            <mat-error *ngIf="curveForm.get('maxVelocity')?.hasError('required')">
+              Campo obrigatório
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('maxVelocity')?.hasError('min')">
+              Valor mínimo: 10 km/h
+            </mat-error>
+            <mat-error *ngIf="curveForm.get('maxVelocity')?.hasError('max')">
+              Valor máximo: 300 km/h
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button mat-raised-button color="primary" (click)="calculateCurve()" [disabled]="!curveForm.valid || isCalculating">
+            <mat-icon>calculate</mat-icon>
+            Calcular Curva
+          </button>
+          <button mat-raised-button (click)="resetForm()">
+            <mat-icon>refresh</mat-icon>
+            Resetar
+          </button>
+          <button mat-raised-button color="accent" (click)="saveCurveConfiguration()" [disabled]="!curveForm.valid || curvePoints.length === 0">
+            <mat-icon>save</mat-icon>
+            Salvar Configuração
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="results-section" *ngIf="curvePoints.length > 0">
+    <mat-card class="chart-card">
+      <mat-card-header>
+        <mat-card-title>Visualização da Curva</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="chart-container">
+          <canvas #chartCanvas></canvas>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="table-card">
+      <mat-card-header>
+        <mat-card-title>Valores Calculados</mat-card-title>
+        <button mat-icon-button (click)="exportToCSV()" matTooltip="Exportar para CSV" class="export-button">
+          <mat-icon>download</mat-icon>
+        </button>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="curvePoints" class="values-table">
+            <ng-container matColumnDef="velocity">
+              <th mat-header-cell *matHeaderCellDef> Velocidade (km/h) </th>
+              <td mat-cell *matCellDef="let point"> {{point.velocity.toFixed(1)}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="acceleration">
+              <th mat-header-cell *matHeaderCellDef> Aceleração (m/s²) </th>
+              <td mat-cell *matCellDef="let point"> {{point.acceleration.toFixed(6)}} </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="loading-overlay" *ngIf="isCalculating">
+    <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+    <p>Calculando curva...</p>
+  </div>
+</div>

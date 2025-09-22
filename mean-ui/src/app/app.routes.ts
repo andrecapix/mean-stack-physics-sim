@@ -44,6 +44,10 @@ export const routes: Routes = [
       {
         path: 'history',
         loadComponent: () => import('./features/simulation/history/history.component').then(m => m.HistoryComponent)
+      },
+      {
+        path: 'acceleration-curve',
+        loadComponent: () => import('./features/simulation/acceleration-curve/acceleration-curve.component').then(m => m.AccelerationCurveComponent)
       }
     ]
   },

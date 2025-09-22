@@ -297,6 +297,26 @@ import { SimulationService, SimulationResultDto, PaginatedSimulationsDto } from 
             </mat-card-actions>
           </mat-card>
 
+          <!-- Acceleration Curve Card -->
+          <mat-card class="action-card">
+            <mat-card-header>
+              <div mat-card-avatar class="action-avatar curve-avatar">
+                <mat-icon>show_chart</mat-icon>
+              </div>
+              <mat-card-title>Curva de Aceleração</mat-card-title>
+              <mat-card-subtitle>Configurar perfil de aceleração</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <p>Defina curvas personalizadas de aceleração por velocidade.</p>
+            </mat-card-content>
+            <mat-card-actions>
+              <button mat-raised-button (click)="goToAccelerationCurve()">
+                <mat-icon>timeline</mat-icon>
+                Configurar
+              </button>
+            </mat-card-actions>
+          </mat-card>
+
           <!-- Analytics Card (Admin Only) -->
           @if (authService.isAdmin()) {
             <mat-card class="action-card admin-action">
@@ -913,6 +933,10 @@ export class DashboardComponent implements OnInit {
 
   goToProfile(): void {
     this.router.navigate(['/profile']);
+  }
+
+  goToAccelerationCurve(): void {
+    this.router.navigate(['/simulation/acceleration-curve']);
   }
 
   logout(): void {

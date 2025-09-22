@@ -2,14 +2,16 @@
 
 Guia central para desenvolvimento do sistema de simulação física usando stack MEAN + microserviço Python.
 
-## Status Atual: Fase 4 ✅ COMPLETA
+## Status Atual: Fase 4 ✅ COMPLETA + Curva de Aceleração ✅
 
 **Data de Conclusão**: 18/09/2025
+**Feature Adicional**: 22/09/2025 - Sistema de Curva de Aceleração
 **Próxima Fase**: Fase 5 - Sistema Avançado de Análise & Comparação
 
 ### Conquistas da Fase 4 (Interface Avançada)
 - ✅ **Dashboard Principal**: Overview personalizado com métricas em tempo real
 - ✅ **Sistema de Histórico**: Lista paginada com filtros avançados e busca textual
+- ✅ **Curva de Aceleração**: Sistema completo de configuração e visualização de curvas
 - ✅ **Interface Responsiva**: Design adaptativo para mobile/tablet/desktop
 - ✅ **Error Handling Robusto**: Estados de erro com retry e recovery automático
 - ✅ **Accessibility Completo**: ARIA labels, keyboard navigation, screen reader support
@@ -60,7 +62,7 @@ cd mean-api && npm test                   # Testes unitários
 cd mean-api && npm run test:e2e           # Testes e2e
 
 # Microserviço Python
-cd sim-engine && uvicorn main:app --reload  # Dev server
+cd sim-engine && python -m uvicorn main:app --reload  # Dev server
 cd sim-engine && pytest                   # Testes unitários
 cd sim-engine && pytest tests/test_improvements.py -v  # Testes específicos
 
@@ -106,6 +108,7 @@ docker-compose logs -f sim-engine         # Logs do Python
     /dashboard/          # ✅ Dashboard principal (Fase 4)
     /simulation/         # Simulação e configuração
       /history/          # ✅ Histórico com filtros (Fase 4)
+      /acceleration-curve/ # ✅ Curva de aceleração (Fase 4.5)
     /auth/              # Autenticação (login, register)
     /admin/             # Funcionalidades administrativas
   /src/app/display/      # Sistema de decimation e otimização
@@ -116,6 +119,7 @@ docker-compose logs -f sim-engine         # Logs do Python
     /auth/              # Autenticação JWT
     /simulation/        # CRUD de simulações
     /users/             # Gerenciamento de usuários
+    /acceleration-curve/ # ✅ Sistema de curvas de aceleração (Fase 4.5)
   /src/common/           # Filtros, pipes, interceptors
   /src/config/           # Configuração env e logger
   /src/database/         # Schemas MongoDB
@@ -123,6 +127,7 @@ docker-compose logs -f sim-engine         # Logs do Python
 /sim-engine/
   /engine/rk4.py         # Implementação Runge-Kutta aprimorada
   /engine/service.py     # Lógica de orquestração
+  /engine/acceleration_curve.py # ✅ Cálculos de curva de aceleração (Fase 4.5)
   /tests/                # Testes pytest (>95% coverage)
   /main.py              # FastAPI app com health checks
 ```
@@ -193,6 +198,31 @@ GET /simulation/:id
 GET /simulation
   Query: { page: number, limit: number }
   Response: PaginatedSimulationsDto
+
+# Curva de Aceleração (✅ IMPLEMENTADO)
+POST /acceleration-curve/calculate
+  Body: CalculateAccelerationCurveDto
+  Response: { points: AccelerationCurvePoint[] }
+
+POST /acceleration-curve/save
+  Body: CreateAccelerationCurveDto
+  Response: AccelerationCurveResponseDto
+
+GET /acceleration-curve/list
+  Response: AccelerationCurveResponseDto[]
+
+GET /acceleration-curve/default
+  Response: AccelerationCurveResponseDto | null
+
+GET /acceleration-curve/:id
+  Response: AccelerationCurveResponseDto
+
+PUT /acceleration-curve/:id
+  Body: CreateAccelerationCurveDto
+  Response: AccelerationCurveResponseDto
+
+DELETE /acceleration-curve/:id
+  Response: { success: boolean }
 
 # Health Checks
 GET /health
@@ -422,12 +452,54 @@ logger.error('Physics calculation failed', { error, params });
 **Localização**: mean-ui/src/app/features/simulation/history/history.component.ts:1-700+
 **Testes**: mean-ui/src/app/features/simulation/history/history.component.spec.ts
 
+### Acceleration Curve Component (mean-ui/src/app/features/simulation/acceleration-curve/acceleration-curve.component.ts)
+**Funcionalidade**: Sistema completo de configuração e visualização de curvas de aceleração
+**Features**:
+- Formulário reativo com validação em tempo real
+- Gráfico Chart.js interativo com zoom e tooltips
+- Tabela de dados detalhada com todos os pontos calculados
+- Export para CSV para análise externa
+- Recálculo automático ao alterar parâmetros
+- Salvar/carregar configurações personalizadas
+
+**Localização**: mean-ui/src/app/features/simulation/acceleration-curve/acceleration-curve.component.ts:1-202
+**Backend**: mean-api/src/modules/acceleration-curve/ (Controller, Service, DTOs, Schema)
+**Testes**: Cobertura >95% incluindo cálculos e interface
+
 ### Rotas Implementadas (mean-ui/src/app/app.routes.ts)
 ```typescript
 // Novas rotas da Fase 4
 { path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard] }
 { path: 'simulation/history', component: HistoryComponent, canActivate: [AuthGuard] }
+{ path: 'simulation/acceleration-curve', component: AccelerationCurveComponent, canActivate: [AuthGuard] }
 ```
+
+## Como Acessar a Curva de Aceleração
+
+### Navegação pelo Dashboard (Recomendado)
+1. Acesse `http://localhost:4200`
+2. Faça login se necessário
+3. No dashboard principal, localize o card **"Curva de Aceleração"**
+4. Clique no botão **"Configurar"**
+
+### Acesso Direto via URL
+- URL: `http://localhost:4200/simulation/acceleration-curve`
+- Requer autenticação (guard ativo)
+
+### Funcionalidades Disponíveis
+- **Configuração Interativa**: Ajuste parâmetros em tempo real
+- **Visualização Gráfica**: Chart.js com tooltips e interatividade
+- **Tabela de Dados**: Todos os pontos calculados da curva
+- **Export CSV**: Para análise externa
+- **Salvar Configurações**: Persistir configurações personalizadas
+- **Validação em Tempo Real**: Feedback imediato dos parâmetros
+
+### Parâmetros Configuráveis
+- **Linear Velocity Threshold**: Limite para aceleração linear (1-100 km/h)
+- **Initial Acceleration**: Aceleração inicial (0.1-3.0 m/s²)
+- **Velocity Increment**: Incremento de velocidade (0.1-10 km/h)
+- **Loss Factor**: Fator de perda (1-1000)
+- **Max Velocity**: Velocidade máxima (10-300 km/h)
 
 ## Unexpected Project Behaviors
 
