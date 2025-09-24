@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -9,8 +9,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { NgChartsModule } from 'ng2-charts';
-import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+import { ChartConfiguration, ChartData, ChartType, registerables } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'chart.js';
@@ -18,6 +20,8 @@ import { SimulationService, SimulationParamsDto, SimulationResultDto } from '@/c
 import { DataDecimation } from '@/shared/utils/data-decimation';
 import { RegimeAwareDecimation } from '@/shared/utils/regime-aware-decimation';
 import { DEFAULT_DECIMATION_CONFIG } from '@/shared/utils/decimation-config';
+import { AccelerationCurveService } from './acceleration-curve/acceleration-curve.service';
+import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-curve/acceleration-curve.types';
 
 @Component({
   selector: 'app-simulation',
@@ -33,10 +37,168 @@ import { DEFAULT_DECIMATION_CONFIG } from '@/shared/utils/decimation-config';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
+    MatTableModule,
+    MatTooltipModule,
     NgChartsModule
   ],
   template: `
     <div class="simulation-container">
+      <!-- Acceleration Curve Section -->
+      <div class="acceleration-curve-container">
+        <mat-card class="config-card">
+          <mat-card-header>
+            <mat-card-title>Configuração da Curva de Aceleração</mat-card-title>
+            <mat-card-subtitle>Configure os parâmetros para gerar a curva de aceleração por velocidade</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <form [formGroup]="curveForm" class="curve-form">
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Velocidade Linear (km/h)</mat-label>
+                  <input matInput type="number" formControlName="linearVelocityThreshold" step="1">
+                  <mat-hint>Velocidade até onde a aceleração é constante</mat-hint>
+                  <mat-error *ngIf="curveForm.get('linearVelocityThreshold')?.hasError('required')">
+                    Campo obrigatório
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('linearVelocityThreshold')?.hasError('min')">
+                    Valor mínimo: 1 km/h
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('linearVelocityThreshold')?.hasError('max')">
+                    Valor máximo: 100 km/h
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Aceleração Inicial (m/s²)</mat-label>
+                  <input matInput type="number" formControlName="initialAcceleration" step="0.1">
+                  <mat-hint>Aceleração constante até a velocidade linear</mat-hint>
+                  <mat-error *ngIf="curveForm.get('initialAcceleration')?.hasError('required')">
+                    Campo obrigatório
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('initialAcceleration')?.hasError('min')">
+                    Valor mínimo: 0.1 m/s²
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('initialAcceleration')?.hasError('max')">
+                    Valor máximo: 3.0 m/s²
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Incremento de Velocidade (km/h)</mat-label>
+                  <input matInput type="number" formControlName="velocityIncrement" step="0.1">
+                  <mat-hint>Intervalo de cálculo da curva</mat-hint>
+                  <mat-error *ngIf="curveForm.get('velocityIncrement')?.hasError('required')">
+                    Campo obrigatório
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('velocityIncrement')?.hasError('min')">
+                    Valor mínimo: 0.1 km/h
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('velocityIncrement')?.hasError('max')">
+                    Valor máximo: 10 km/h
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Fator de Perda</mat-label>
+                  <input matInput type="number" formControlName="lossFactor" step="1">
+                  <mat-hint>Fator de redução da aceleração</mat-hint>
+                  <mat-error *ngIf="curveForm.get('lossFactor')?.hasError('required')">
+                    Campo obrigatório
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('lossFactor')?.hasError('min')">
+                    Valor mínimo: 1
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('lossFactor')?.hasError('max')">
+                    Valor máximo: 1000
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Velocidade Máxima (km/h)</mat-label>
+                  <input matInput type="number" formControlName="maxVelocity" step="10">
+                  <mat-hint>Limite superior para cálculo da curva</mat-hint>
+                  <mat-error *ngIf="curveForm.get('maxVelocity')?.hasError('required')">
+                    Campo obrigatório
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('maxVelocity')?.hasError('min')">
+                    Valor mínimo: 10 km/h
+                  </mat-error>
+                  <mat-error *ngIf="curveForm.get('maxVelocity')?.hasError('max')">
+                    Valor máximo: 300 km/h
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-actions">
+                <button mat-raised-button color="primary" (click)="calculateAccelerationCurve()" [disabled]="!curveForm.valid || isCalculating">
+                  <mat-icon>calculate</mat-icon>
+                  Calcular Curva
+                </button>
+                <button mat-raised-button (click)="resetAccelerationCurveForm()">
+                  <mat-icon>refresh</mat-icon>
+                  Resetar
+                </button>
+                <button mat-raised-button color="accent" (click)="saveAccelerationCurveConfiguration()" [disabled]="!curveForm.valid || curvePoints.length === 0">
+                  <mat-icon>save</mat-icon>
+                  Salvar Configuração
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+
+        <div class="results-section" *ngIf="curvePoints.length > 0">
+          <mat-card class="chart-card">
+            <mat-card-header>
+              <mat-card-title>Visualização da Curva</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="chart-container">
+                <canvas #chartCanvas></canvas>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-card-title>Valores Calculados</mat-card-title>
+              <button mat-icon-button (click)="exportAccelerationCurveToCSV()" matTooltip="Exportar para CSV" class="export-button">
+                <mat-icon>download</mat-icon>
+              </button>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="curvePoints" class="values-table">
+                  <ng-container matColumnDef="velocity">
+                    <th mat-header-cell *matHeaderCellDef> Velocidade (km/h) </th>
+                    <td mat-cell *matCellDef="let point"> {{point.velocity.toFixed(1)}} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="acceleration">
+                    <th mat-header-cell *matHeaderCellDef> Aceleração (m/s²) </th>
+                    <td mat-cell *matCellDef="let point"> {{point.acceleration.toFixed(6)}} </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                </table>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <div class="loading-overlay" *ngIf="isCalculating">
+          <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+          <p>Calculando curva...</p>
+        </div>
+      </div>
+
+      <!-- Physics Simulation Section -->
       <mat-card class="simulation-form">
         <mat-card-header>
           <mat-card-title>Physics Simulation Parameters</mat-card-title>
@@ -303,16 +465,127 @@ import { DEFAULT_DECIMATION_CONFIG } from '@/shared/utils/decimation-config';
       width: 18px;
       height: 18px;
     }
+
+    /* Acceleration Curve Styles */
+    .acceleration-curve-container {
+      margin-bottom: 40px;
+
+      .config-card {
+        margin-bottom: 20px;
+
+        .curve-form {
+          padding: 20px 0;
+
+          .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-start;
+            margin-top: 20px;
+
+            button {
+              mat-icon {
+                margin-right: 5px;
+              }
+            }
+          }
+        }
+      }
+
+      .results-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+
+        @media (max-width: 1200px) {
+          grid-template-columns: 1fr;
+        }
+
+        .chart-card {
+          .chart-container {
+            height: 400px;
+            padding: 10px;
+          }
+        }
+
+        .table-card {
+          position: relative;
+
+          mat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            .export-button {
+              margin-left: auto;
+            }
+          }
+
+          .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+
+            .values-table {
+              width: 100%;
+
+              th {
+                background-color: #f5f5f5;
+                font-weight: 600;
+              }
+
+              td {
+                padding: 8px 16px;
+              }
+
+              tr:nth-child(even) {
+                background-color: #fafafa;
+              }
+
+              tr:hover {
+                background-color: #f0f0f0;
+              }
+            }
+          }
+        }
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+
+        p {
+          margin-top: 10px;
+          color: white;
+          font-size: 16px;
+        }
+      }
+    }
   `]
 })
 export class SimulationComponent implements OnInit {
   // Registrar plugins Chart.js
   static {
-    Chart.register(zoomPlugin, annotationPlugin);
+    Chart.register(zoomPlugin, annotationPlugin, ...registerables);
   }
+  @ViewChild('chartCanvas', { static: false }) chartCanvas!: ElementRef<HTMLCanvasElement>;
   simulationForm: FormGroup;
   isLoading = signal(false);
   currentSimulation = signal<SimulationResultDto | null>(null);
+
+  // Acceleration Curve properties
+  curveForm: FormGroup;
+  curvePoints: AccelerationCurvePoint[] = [];
+  displayedColumns: string[] = ['velocity', 'acceleration'];
+  accelerationChart: Chart | null = null;
+  isCalculating = false;
 
   // Dados originais (SEMPRE preservados)
   originalSimulationData: SimulationResultDto | null = null;
@@ -428,13 +701,158 @@ export class SimulationComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private simulationService: SimulationService
+    private simulationService: SimulationService,
+    private accelerationCurveService: AccelerationCurveService
   ) {
     this.simulationForm = this.createForm();
+    this.curveForm = this.createCurveForm();
+  }
+
+  // Acceleration Curve Methods
+  calculateCurve(): void {
+    if (!this.curveForm.valid) {
+      return;
+    }
+
+    this.isCalculating = true;
+    const config: AccelerationCurveConfig = this.curveForm.value;
+
+    this.curvePoints = this.accelerationCurveService.calculateAccelerationCurve(config);
+
+    setTimeout(() => {
+      this.updateAccelerationChart();
+      this.isCalculating = false;
+    }, 100);
+  }
+
+  updateAccelerationChart(): void {
+    if (!this.chartCanvas) {
+      return;
+    }
+
+    const ctx = this.chartCanvas.nativeElement.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    if (this.accelerationChart) {
+      this.accelerationChart.destroy();
+    }
+
+    const chartConfig: ChartConfiguration = {
+      type: 'line' as ChartType,
+      data: {
+        labels: this.curvePoints.map(p => p.velocity.toFixed(0)),
+        datasets: [{
+          label: 'Aceleração (m/s²)',
+          data: this.curvePoints.map(p => p.acceleration),
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          tension: 0.1,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Curva de Aceleração por Velocidade',
+            font: {
+              size: 16
+            }
+          },
+          legend: {
+            display: true,
+            position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const velocity = this.curvePoints[context.dataIndex].velocity;
+                const acceleration = context.parsed.y;
+                return [
+                  `Velocidade: ${velocity.toFixed(1)} km/h`,
+                  `Aceleração: ${acceleration.toFixed(6)} m/s²`
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Velocidade (km/h)'
+            },
+            ticks: {
+              callback: function(value, index) {
+                return index % 10 === 0 ? value : '';
+              }
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Aceleração (m/s²)'
+            },
+            beginAtZero: true
+          }
+        }
+      }
+    };
+
+    this.accelerationChart = new Chart(ctx, chartConfig);
+  }
+
+  exportAccelerationToCSV(): void {
+    const csvContent = this.accelerationCurveService.exportToCSV(this.curvePoints);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `acceleration_curve_${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  saveCurveConfiguration(): void {
+    const config: AccelerationCurveConfig = this.curveForm.value;
+    this.accelerationCurveService.saveCurveConfiguration(config).subscribe({
+      next: (response) => {
+        console.log('Configuração salva com sucesso:', response);
+      },
+      error: (error) => {
+        console.error('Erro ao salvar configuração:', error);
+      }
+    });
+  }
+
+  resetCurveForm(): void {
+    this.curveForm.reset({
+      linearVelocityThreshold: 30,
+      initialAcceleration: 1.1,
+      velocityIncrement: 1,
+      lossFactor: 46,
+      maxVelocity: 160
+    });
   }
 
   ngOnInit() {
     this.loadDefaultParameters();
+    this.calculateAccelerationCurve();
+
+    this.curveForm.valueChanges.subscribe(() => {
+      if (this.curveForm.valid) {
+        this.calculateAccelerationCurve();
+      }
+    });
   }
 
   get stationsFormArray(): FormArray {
@@ -449,6 +867,16 @@ export class SimulationComponent implements OnInit {
       dwellTime: [30.0, [Validators.required, Validators.min(0)]],
       terminalLayover: [300.0, [Validators.required, Validators.min(0)]],
       stations: this.fb.array([])
+    });
+  }
+
+  private createCurveForm(): FormGroup {
+    return this.fb.group({
+      linearVelocityThreshold: [30, [Validators.required, Validators.min(1), Validators.max(100)]],
+      initialAcceleration: [1.1, [Validators.required, Validators.min(0.1), Validators.max(3.0)]],
+      velocityIncrement: [1, [Validators.required, Validators.min(0.1), Validators.max(10)]],
+      lossFactor: [46, [Validators.required, Validators.min(1), Validators.max(1000)]],
+      maxVelocity: [160, [Validators.required, Validators.min(10), Validators.max(300)]]
     });
   }
 
@@ -742,5 +1170,141 @@ export class SimulationComponent implements OnInit {
     }
 
     console.log(`📍 Adicionados ${Object.keys(annotations).length} marcadores visuais`);
+  }
+
+  // Additional Acceleration Curve Methods (renamed to avoid conflicts)
+  calculateAccelerationCurve(): void {
+    if (!this.curveForm.valid) {
+      return;
+    }
+
+    this.isCalculating = true;
+    const config: AccelerationCurveConfig = this.curveForm.value;
+
+    this.curvePoints = this.accelerationCurveService.calculateAccelerationCurve(config);
+
+    setTimeout(() => {
+      this.updateAccelerationCurveChart();
+      this.isCalculating = false;
+    }, 100);
+  }
+
+  updateAccelerationCurveChart(): void {
+    if (!this.chartCanvas) {
+      return;
+    }
+
+    const ctx = this.chartCanvas.nativeElement.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    if (this.accelerationChart) {
+      this.accelerationChart.destroy();
+    }
+
+    const chartConfig: ChartConfiguration = {
+      type: 'line' as ChartType,
+      data: {
+        labels: this.curvePoints.map(p => p.velocity.toFixed(0)),
+        datasets: [{
+          label: 'Aceleração (m/s²)',
+          data: this.curvePoints.map(p => p.acceleration),
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          tension: 0.1,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Curva de Aceleração por Velocidade',
+            font: {
+              size: 16
+            }
+          },
+          legend: {
+            display: true,
+            position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const velocity = this.curvePoints[context.dataIndex].velocity;
+                const acceleration = context.parsed.y;
+                return [
+                  `Velocidade: ${velocity.toFixed(1)} km/h`,
+                  `Aceleração: ${acceleration.toFixed(6)} m/s²`
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Velocidade (km/h)'
+            },
+            ticks: {
+              callback: function(value, index) {
+                return index % 10 === 0 ? value : '';
+              }
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Aceleração (m/s²)'
+            },
+            beginAtZero: true
+          }
+        }
+      }
+    };
+
+    this.accelerationChart = new Chart(ctx, chartConfig);
+  }
+
+  exportAccelerationCurveToCSV(): void {
+    const csvContent = this.accelerationCurveService.exportToCSV(this.curvePoints);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `acceleration_curve_${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  saveAccelerationCurveConfiguration(): void {
+    const config: AccelerationCurveConfig = this.curveForm.value;
+    this.accelerationCurveService.saveCurveConfiguration(config).subscribe({
+      next: (response) => {
+        console.log('Configuração salva com sucesso:', response);
+      },
+      error: (error) => {
+        console.error('Erro ao salvar configuração:', error);
+      }
+    });
+  }
+
+  resetAccelerationCurveForm(): void {
+    this.curveForm.reset({
+      linearVelocityThreshold: 30,
+      initialAcceleration: 1.1,
+      velocityIncrement: 1,
+      lossFactor: 46,
+      maxVelocity: 160
+    });
   }
 }
