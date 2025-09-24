@@ -207,24 +207,8 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
         <mat-card-content>
           <form [formGroup]="simulationForm" (ngSubmit)="onSubmit()">
             <!-- Physics Parameters -->
-            <div class="form-row">
-              <mat-form-field>
-                <mat-label>Initial Acceleration (m/s²)</mat-label>
-                <input matInput type="number" formControlName="initialAcceleration" step="0.1">
-              </mat-form-field>
-
-              <mat-form-field>
-                <mat-label>Threshold Velocity (m/s)</mat-label>
-                <input matInput type="number" formControlName="thresholdVelocity" step="0.1">
-              </mat-form-field>
-            </div>
 
             <div class="form-row">
-              <mat-form-field>
-                <mat-label>Max Velocity (m/s)</mat-label>
-                <input matInput type="number" formControlName="maxVelocity" step="0.1">
-              </mat-form-field>
-
               <mat-form-field>
                 <mat-label>Dwell Time (s)</mat-label>
                 <input matInput type="number" formControlName="dwellTime" step="1">
@@ -861,9 +845,6 @@ export class SimulationComponent implements OnInit {
 
   private createForm(): FormGroup {
     return this.fb.group({
-      initialAcceleration: [3.0, [Validators.required, Validators.min(0)]],
-      thresholdVelocity: [20.0, [Validators.required, Validators.min(0)]],
-      maxVelocity: [30.0, [Validators.required, Validators.min(0)]],
       dwellTime: [30.0, [Validators.required, Validators.min(0)]],
       terminalLayover: [300.0, [Validators.required, Validators.min(0)]],
       stations: this.fb.array([])
@@ -919,7 +900,17 @@ export class SimulationComponent implements OnInit {
   onSubmit() {
     if (this.simulationForm.valid) {
       this.isLoading.set(true);
-      const params: SimulationParamsDto = this.simulationForm.value;
+      const linearVelocityKmh = this.curveForm.get('linearVelocityThreshold')?.value || 30;
+      const thresholdVelocityMs = linearVelocityKmh / 3.6; // Convert km/h to m/s
+      const maxVelocityKmh = this.curveForm.get('maxVelocity')?.value || 160;
+      const maxVelocityMs = maxVelocityKmh / 3.6; // Convert km/h to m/s
+
+      const params: SimulationParamsDto = {
+        ...this.simulationForm.value,
+        maxVelocity: maxVelocityMs,
+        initialAcceleration: this.curveForm.get('initialAcceleration')?.value || 1.1,
+        thresholdVelocity: thresholdVelocityMs
+      };
 
       this.simulationService.createSimulation(params).subscribe({
         next: (response) => {
@@ -964,10 +955,11 @@ export class SimulationComponent implements OnInit {
     console.log(`📊 Dados originais: ${simulation.results.time.length} pontos`);
 
     // DECIMAR dados com consciência de regime
-    const currentParams = this.simulationForm.value;
+    const maxVelocityKmh = this.curveForm.get('maxVelocity')?.value || 160;
+    const maxVelocityMs = maxVelocityKmh / 3.6;
     const simulationParams = {
-      max_speed: currentParams.maxVelocity || 30,
-      initial_accel: currentParams.initialAcceleration || 2
+      max_speed: maxVelocityMs,
+      initial_accel: this.curveForm.get('initialAcceleration')?.value || 1.1
     };
 
     // Converter schedule para formato esperado
