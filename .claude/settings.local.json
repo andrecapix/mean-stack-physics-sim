@@ -52,7 +52,10 @@
       "Bash(pip cache:*)",
       "Bash(docker-compose:*)",
       "Bash(findstr:*)",
-      "Bash(ng serve:*)"
+      "Bash(ng serve:*)",
+      "Bash(cls)",
+      "Bash(clear)",
+      "Bash(env)"
     ],
     "deny": [],
     "ask": []

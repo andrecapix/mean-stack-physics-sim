@@ -285,10 +285,6 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
                   Export Dados Exibidos ({{displayData.time.length}} pts)
                 </button>
 
-                <button mat-stroked-button (click)="resetZoom()">
-                  <mat-icon>zoom_out_map</mat-icon>
-                  Reset Zoom
-                </button>
               </div>
             }
           </mat-card-header>
@@ -310,21 +306,75 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
             @if (currentSimulation()?.status === 'completed' && currentSimulation()?.results) {
               <mat-tab-group>
                 <mat-tab label="Position vs Time">
+                  <div class="chart-controls-toolbar">
+                    <div class="chart-controls">
+                      <button mat-mini-fab color="primary" (click)="zoomIn('position')" matTooltip="Zoom In" [disabled]="currentZoomLevel >= 10">
+                        <mat-icon>zoom_in</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="primary" (click)="zoomOut('position')" matTooltip="Zoom Out" [disabled]="currentZoomLevel <= 0.1">
+                        <mat-icon>zoom_out</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="primary" (click)="panLeft('position')" matTooltip="Pan Left" [disabled]="isPanLocked">
+                        <mat-icon>keyboard_arrow_left</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="primary" (click)="panRight('position')" matTooltip="Pan Right" [disabled]="isPanLocked">
+                        <mat-icon>keyboard_arrow_right</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="accent" (click)="resetZoom('position')" matTooltip="Reset View">
+                        <mat-icon>refresh</mat-icon>
+                      </button>
+                      <button mat-mini-fab [color]="isPanLocked ? 'warn' : 'primary'" (click)="togglePanLock()"
+                              [matTooltip]="isPanLocked ? 'Unlock Pan' : 'Lock Pan'">
+                        <mat-icon>{{ isPanLocked ? 'lock' : 'lock_open' }}</mat-icon>
+                      </button>
+                    </div>
+                    <div class="zoom-indicator">
+                      <span>Zoom: {{(currentZoomLevel * 100).toFixed(0)}}%</span>
+                    </div>
+                  </div>
                   <div class="chart-container">
                     <canvas baseChart
                             [data]="positionChartData"
                             [options]="chartOptions"
-                            [type]="chartType">
+                            [type]="chartType"
+                            #positionChartRef>
                     </canvas>
                   </div>
                 </mat-tab>
 
                 <mat-tab label="Velocity vs Time">
+                  <div class="chart-controls-toolbar">
+                    <div class="chart-controls">
+                      <button mat-mini-fab color="primary" (click)="zoomIn('velocity')" matTooltip="Zoom In" [disabled]="currentZoomLevel >= 10">
+                        <mat-icon>zoom_in</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="primary" (click)="zoomOut('velocity')" matTooltip="Zoom Out" [disabled]="currentZoomLevel <= 0.1">
+                        <mat-icon>zoom_out</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="primary" (click)="panLeft('velocity')" matTooltip="Pan Left" [disabled]="isPanLocked">
+                        <mat-icon>keyboard_arrow_left</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="primary" (click)="panRight('velocity')" matTooltip="Pan Right" [disabled]="isPanLocked">
+                        <mat-icon>keyboard_arrow_right</mat-icon>
+                      </button>
+                      <button mat-mini-fab color="accent" (click)="resetZoom('velocity')" matTooltip="Reset View">
+                        <mat-icon>refresh</mat-icon>
+                      </button>
+                      <button mat-mini-fab [color]="isPanLocked ? 'warn' : 'primary'" (click)="togglePanLock()"
+                              [matTooltip]="isPanLocked ? 'Unlock Pan' : 'Lock Pan'">
+                        <mat-icon>{{ isPanLocked ? 'lock' : 'lock_open' }}</mat-icon>
+                      </button>
+                    </div>
+                    <div class="zoom-indicator">
+                      <span>Zoom: {{(currentZoomLevel * 100).toFixed(0)}}%</span>
+                    </div>
+                  </div>
                   <div class="chart-container">
                     <canvas baseChart
                             [data]="velocityChartData"
                             [options]="chartOptions"
-                            [type]="chartType">
+                            [type]="chartType"
+                            #velocityChartRef>
                     </canvas>
                   </div>
                 </mat-tab>
@@ -405,6 +455,42 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
     .chart-container {
       height: 400px;
       margin: 20px 0;
+    }
+
+    /* Chart Controls Toolbar */
+    .chart-controls-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chart-controls button {
+      width: 32px !important;
+      height: 32px !important;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .zoom-indicator {
+      font-size: 12px;
+      color: #666;
+      padding: 4px 8px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      font-weight: 500;
     }
 
     .loading-container {
@@ -571,6 +657,8 @@ export class SimulationComponent implements OnInit {
     Chart.register(zoomPlugin, annotationPlugin, ...registerables);
   }
   @ViewChild('chartCanvas', { static: false }) chartCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('positionChartRef', { static: false }) positionChartRef: any;
+  @ViewChild('velocityChartRef', { static: false }) velocityChartRef: any;
   simulationForm: FormGroup;
   isLoading = signal(false);
   currentSimulation = signal<SimulationResultDto | null>(null);
@@ -596,6 +684,12 @@ export class SimulationComponent implements OnInit {
   positionChartData: ChartData<'line'> = { labels: [], datasets: [] };
   velocityChartData: ChartData<'line'> = { labels: [], datasets: [] };
 
+  // Chart control state
+  private positionChart: Chart | null = null;
+  private velocityChart: Chart | null = null;
+  currentZoomLevel = 1;
+  isPanLocked = false;
+
   chartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -607,18 +701,16 @@ export class SimulationComponent implements OnInit {
       zoom: {
         zoom: {
           wheel: {
-            enabled: true,
-            speed: 0.3
+            enabled: false
           },
           pinch: {
-            enabled: true
+            enabled: false
           },
           mode: 'x'
         },
         pan: {
-          enabled: true,
-          mode: 'x',
-          threshold: 10
+          enabled: false,
+          mode: 'x'
         }
       },
       annotation: {
@@ -1083,9 +1175,68 @@ export class SimulationComponent implements OnInit {
     this.downloadFile(csvContent, 'simulation_display_data.csv');
   }
 
-  resetZoom() {
-    // Implementar reset de zoom quando necessário
-    console.log('Reset zoom - funcionalidade será implementada');
+  // Chart control methods
+  zoomIn(chartType: 'position' | 'velocity') {
+    const chart = this.getChart(chartType);
+    if (chart && this.currentZoomLevel < 10) {
+      this.currentZoomLevel = Math.min(10, this.currentZoomLevel * 1.25);
+      chart.zoom(1.25);
+      chart.update('none');
+    }
+  }
+
+  zoomOut(chartType: 'position' | 'velocity') {
+    const chart = this.getChart(chartType);
+    if (chart && this.currentZoomLevel > 0.1) {
+      this.currentZoomLevel = Math.max(0.1, this.currentZoomLevel / 1.25);
+      chart.zoom(0.8);
+      chart.update('none');
+    }
+  }
+
+  panLeft(chartType: 'position' | 'velocity') {
+    const chart = this.getChart(chartType);
+    if (chart && !this.isPanLocked) {
+      const panAmount = this.calculatePanAmount(chart);
+      chart.pan({ x: panAmount });
+      chart.update('none');
+    }
+  }
+
+  panRight(chartType: 'position' | 'velocity') {
+    const chart = this.getChart(chartType);
+    if (chart && !this.isPanLocked) {
+      const panAmount = this.calculatePanAmount(chart);
+      chart.pan({ x: -panAmount });
+      chart.update('none');
+    }
+  }
+
+  resetZoom(chartType: 'position' | 'velocity') {
+    const chart = this.getChart(chartType);
+    if (chart) {
+      this.currentZoomLevel = 1;
+      chart.resetZoom();
+      chart.update('none');
+    }
+  }
+
+  togglePanLock() {
+    this.isPanLocked = !this.isPanLocked;
+  }
+
+  private getChart(chartType: 'position' | 'velocity'): Chart | null {
+    if (chartType === 'position') {
+      return this.positionChartRef?.chart || null;
+    } else {
+      return this.velocityChartRef?.chart || null;
+    }
+  }
+
+  private calculatePanAmount(chart: Chart): number {
+    const xScale = chart.scales['x'];
+    const range = xScale.max - xScale.min;
+    return range * 0.1; // Pan by 10% of current visible range
   }
 
   private convertToCSV(data: { time: number[], position: number[], velocity: number[] }): string {
