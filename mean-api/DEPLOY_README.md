@@ -60,11 +60,19 @@ Start Command: (deixar vazio - usa CMD do Docker)
 **⚠️ IMPORTANT**: Configure no Railway Settings → Variables:
 ```env
 MONGODB_URI=mongodb+srv://mean_user:iKep8flhqpO2zR4m@cluster0.o921m.mongodb.net/rail-sim?retryWrites=true&w=majority&appName=Cluster0
-JWT_SECRET=generate-strong-secret-here
-REFRESH_SECRET=generate-another-strong-secret-here
+JWT_SECRET=production-secret-123
+REFRESH_SECRET=production-refresh-secret-456
 PYTHON_SERVICE_URL=https://mean-stack-physics-sim-production.up.railway.app
 NODE_ENV=production
+PORT=3000
+CORS_ORIGIN=https://seu-frontend.vercel.app,http://localhost:4200
+LOG_LEVEL=info
 ```
+
+**✅ CONFIGURAÇÃO CORRIGIDA:**
+- MongoDB Atlas connection string configurada corretamente
+- Environment file loading ordem: .env.production primeiro, depois .env
+- Connection pooling otimizado para Railway
 
 ### 4. Generate Domain:
 - **Port**: `3000`

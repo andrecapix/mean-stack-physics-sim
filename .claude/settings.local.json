@@ -55,7 +55,9 @@
       "Bash(ng serve:*)",
       "Bash(cls)",
       "Bash(clear)",
-      "Bash(env)"
+      "Bash(env)",
+      "Bash(winget install:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

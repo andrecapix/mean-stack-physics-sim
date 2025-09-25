@@ -6,6 +6,7 @@ import { SimulationModule } from './modules/simulation/simulation.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AccelerationCurveModule } from './modules/acceleration-curve/acceleration-curve.module';
+import { RedisCacheModule } from './modules/cache/cache.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AccelerationCurveModule } from './modules/acceleration-curve/accelerati
         };
       },
     }),
+    RedisCacheModule,
     HealthModule,
     SimulationModule,
     AuthModule,

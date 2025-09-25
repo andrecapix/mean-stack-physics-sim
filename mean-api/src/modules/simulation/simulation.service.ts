@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Simulation, SimulationDocument } from '@/database/simulation.schema';
 import { CreateSimulationDto, SimulationResultDto, PaginatedSimulationsDto } from './dto/simulation.dto';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class SimulationService {
@@ -13,6 +14,7 @@ export class SimulationService {
   constructor(
     @InjectModel(Simulation.name) private simulationModel: Model<SimulationDocument>,
     private configService: ConfigService,
+    private cacheService: CacheService,
   ) {
     this.simEngineUrl = this.configService.get<string>('SIM_ENGINE_URL', 'http://127.0.0.1:8000');
   }
