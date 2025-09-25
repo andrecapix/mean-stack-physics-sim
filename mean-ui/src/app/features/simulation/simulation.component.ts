@@ -47,89 +47,89 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
       <div class="acceleration-curve-container">
         <mat-card class="config-card">
           <mat-card-header>
-            <mat-card-title>Configuração da Curva de Aceleração</mat-card-title>
-            <mat-card-subtitle>Configure os parâmetros para gerar a curva de aceleração por velocidade</mat-card-subtitle>
+            <mat-card-title>Acceleration Curve Configuration</mat-card-title>
+            <mat-card-subtitle>Configure parameters to generate the acceleration curve by velocity</mat-card-subtitle>
           </mat-card-header>
 
           <mat-card-content>
             <form [formGroup]="curveForm" class="curve-form">
               <div class="form-row">
                 <mat-form-field appearance="outline">
-                  <mat-label>Velocidade Linear (km/h)</mat-label>
+                  <mat-label>Threshold Velocity (km/h)</mat-label>
                   <input matInput type="number" formControlName="linearVelocityThreshold" step="1">
-                  <mat-hint>Velocidade até onde a aceleração é constante</mat-hint>
+                  <mat-hint>Velocity up to which acceleration is constant</mat-hint>
                   <mat-error *ngIf="curveForm.get('linearVelocityThreshold')?.hasError('required')">
-                    Campo obrigatório
+                    Required field
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('linearVelocityThreshold')?.hasError('min')">
-                    Valor mínimo: 1 km/h
+                    Minimum value: 1 km/h
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('linearVelocityThreshold')?.hasError('max')">
-                    Valor máximo: 100 km/h
+                    Maximum value: 100 km/h
                   </mat-error>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
-                  <mat-label>Aceleração Inicial (m/s²)</mat-label>
+                  <mat-label>Initial Acceleration (m/s²)</mat-label>
                   <input matInput type="number" formControlName="initialAcceleration" step="0.1">
-                  <mat-hint>Aceleração constante até a velocidade linear</mat-hint>
+                  <mat-hint>Constant acceleration up to threshold velocity</mat-hint>
                   <mat-error *ngIf="curveForm.get('initialAcceleration')?.hasError('required')">
-                    Campo obrigatório
+                    Required field
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('initialAcceleration')?.hasError('min')">
-                    Valor mínimo: 0.1 m/s²
+                    Minimum value: 0.1 m/s²
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('initialAcceleration')?.hasError('max')">
-                    Valor máximo: 3.0 m/s²
+                    Maximum value: 3.0 m/s²
                   </mat-error>
                 </mat-form-field>
               </div>
 
               <div class="form-row">
                 <mat-form-field appearance="outline">
-                  <mat-label>Incremento de Velocidade (km/h)</mat-label>
+                  <mat-label>Velocity Increment (km/h)</mat-label>
                   <input matInput type="number" formControlName="velocityIncrement" step="0.1">
-                  <mat-hint>Intervalo de cálculo da curva</mat-hint>
+                  <mat-hint>Curve calculation interval</mat-hint>
                   <mat-error *ngIf="curveForm.get('velocityIncrement')?.hasError('required')">
-                    Campo obrigatório
+                    Required field
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('velocityIncrement')?.hasError('min')">
-                    Valor mínimo: 0.1 km/h
+                    Minimum value: 0.1 km/h
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('velocityIncrement')?.hasError('max')">
-                    Valor máximo: 10 km/h
+                    Maximum value: 10 km/h
                   </mat-error>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
-                  <mat-label>Fator de Perda</mat-label>
+                  <mat-label>Loss Factor</mat-label>
                   <input matInput type="number" formControlName="lossFactor" step="1">
-                  <mat-hint>Fator de redução da aceleração</mat-hint>
+                  <mat-hint>Acceleration reduction factor</mat-hint>
                   <mat-error *ngIf="curveForm.get('lossFactor')?.hasError('required')">
-                    Campo obrigatório
+                    Required field
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('lossFactor')?.hasError('min')">
-                    Valor mínimo: 1
+                    Minimum value: 1
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('lossFactor')?.hasError('max')">
-                    Valor máximo: 1000
+                    Maximum value: 1000
                   </mat-error>
                 </mat-form-field>
               </div>
 
               <div class="form-row">
                 <mat-form-field appearance="outline">
-                  <mat-label>Velocidade Máxima (km/h)</mat-label>
+                  <mat-label>Maximum Velocity (km/h)</mat-label>
                   <input matInput type="number" formControlName="maxVelocity" step="10">
-                  <mat-hint>Limite superior para cálculo da curva</mat-hint>
+                  <mat-hint>Upper limit for curve calculation</mat-hint>
                   <mat-error *ngIf="curveForm.get('maxVelocity')?.hasError('required')">
-                    Campo obrigatório
+                    Required field
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('maxVelocity')?.hasError('min')">
-                    Valor mínimo: 10 km/h
+                    Minimum value: 10 km/h
                   </mat-error>
                   <mat-error *ngIf="curveForm.get('maxVelocity')?.hasError('max')">
-                    Valor máximo: 300 km/h
+                    Maximum value: 300 km/h
                   </mat-error>
                 </mat-form-field>
               </div>
@@ -137,15 +137,15 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
               <div class="form-actions">
                 <button mat-raised-button color="primary" (click)="calculateAccelerationCurve()" [disabled]="!curveForm.valid || isCalculating">
                   <mat-icon>calculate</mat-icon>
-                  Calcular Curva
+                  Calculate Curve
                 </button>
                 <button mat-raised-button (click)="resetAccelerationCurveForm()">
                   <mat-icon>refresh</mat-icon>
-                  Resetar
+                  Reset
                 </button>
                 <button mat-raised-button color="accent" (click)="saveAccelerationCurveConfiguration()" [disabled]="!curveForm.valid || curvePoints.length === 0">
                   <mat-icon>save</mat-icon>
-                  Salvar Configuração
+                  Save Configuration
                 </button>
               </div>
             </form>
@@ -155,7 +155,7 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
         <div class="results-section" *ngIf="curvePoints.length > 0">
           <mat-card class="chart-card">
             <mat-card-header>
-              <mat-card-title>Visualização da Curva</mat-card-title>
+              <mat-card-title>Curve Visualization</mat-card-title>
             </mat-card-header>
             <mat-card-content>
               <div class="chart-container">
@@ -166,8 +166,8 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
 
           <mat-card class="table-card">
             <mat-card-header>
-              <mat-card-title>Valores Calculados</mat-card-title>
-              <button mat-icon-button (click)="exportAccelerationCurveToCSV()" matTooltip="Exportar para CSV" class="export-button">
+              <mat-card-title>Calculated Values</mat-card-title>
+              <button mat-icon-button (click)="exportAccelerationCurveToCSV()" matTooltip="Export to CSV" class="export-button">
                 <mat-icon>download</mat-icon>
               </button>
             </mat-card-header>
@@ -175,12 +175,12 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
               <div class="table-container">
                 <table mat-table [dataSource]="curvePoints" class="values-table">
                   <ng-container matColumnDef="velocity">
-                    <th mat-header-cell *matHeaderCellDef> Velocidade (km/h) </th>
+                    <th mat-header-cell *matHeaderCellDef> Velocity (km/h) </th>
                     <td mat-cell *matCellDef="let point"> {{point.velocity.toFixed(1)}} </td>
                   </ng-container>
 
                   <ng-container matColumnDef="acceleration">
-                    <th mat-header-cell *matHeaderCellDef> Aceleração (m/s²) </th>
+                    <th mat-header-cell *matHeaderCellDef> Acceleration (m/s²) </th>
                     <td mat-cell *matCellDef="let point"> {{point.acceleration.toFixed(6)}} </td>
                   </ng-container>
 
@@ -194,29 +194,27 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
 
         <div class="loading-overlay" *ngIf="isCalculating">
           <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
-          <p>Calculando curva...</p>
+          <p>Calculating curve...</p>
         </div>
       </div>
 
       <!-- Physics Simulation Section -->
-      <mat-card class="simulation-form">
+      <mat-card class="config-card">
         <mat-card-header>
           <mat-card-title>Physics Simulation Parameters</mat-card-title>
         </mat-card-header>
 
         <mat-card-content>
-          <form [formGroup]="simulationForm" (ngSubmit)="onSubmit()">
+          <form [formGroup]="simulationForm" (ngSubmit)="onSubmit()" class="physics-form">
             <!-- Physics Parameters -->
 
             <div class="form-row">
-              <mat-form-field>
+              <mat-form-field appearance="outline">
                 <mat-label>Dwell Time (s)</mat-label>
                 <input matInput type="number" formControlName="dwellTime" step="1">
               </mat-form-field>
-            </div>
 
-            <div class="form-row">
-              <mat-form-field>
+              <mat-form-field appearance="outline">
                 <mat-label>Terminal Layover (s)</mat-label>
                 <input matInput type="number" formControlName="terminalLayover" step="1">
               </mat-form-field>
@@ -228,12 +226,12 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
               <div formArrayName="stations">
                 @for (station of stationsFormArray.controls; track $index) {
                   <div class="station-item" [formGroupName]="$index">
-                    <mat-form-field>
+                    <mat-form-field appearance="outline">
                       <mat-label>Station Name</mat-label>
                       <input matInput formControlName="name">
                     </mat-form-field>
 
-                    <mat-form-field>
+                    <mat-form-field appearance="outline">
                       <mat-label>Distance (km)</mat-label>
                       <input matInput type="number" formControlName="km" step="0.1">
                     </mat-form-field>
@@ -253,7 +251,7 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
               </button>
             </div>
 
-            <div class="actions-bar">
+            <div class="form-actions">
               <button mat-raised-button color="primary" type="submit"
                       [disabled]="simulationForm.invalid || isLoading()">
                 @if (isLoading()) {
@@ -360,6 +358,24 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
       margin-bottom: 20px;
     }
 
+    /* Physics Simulation Styles - matching acceleration curve */
+    .physics-form {
+      padding: 20px 0;
+
+      .form-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-start;
+        margin-top: 20px;
+
+        button {
+          mat-icon {
+            margin-right: 5px;
+          }
+        }
+      }
+    }
+
     .form-row {
       display: flex;
       gap: 16px;
@@ -385,11 +401,6 @@ import { AccelerationCurvePoint, AccelerationCurveConfig } from './acceleration-
       flex: 1;
     }
 
-    .actions-bar {
-      display: flex;
-      justify-content: center;
-      margin-top: 20px;
-    }
 
     .chart-container {
       height: 400px;
@@ -728,7 +739,7 @@ export class SimulationComponent implements OnInit {
       data: {
         labels: this.curvePoints.map(p => p.velocity.toFixed(0)),
         datasets: [{
-          label: 'Aceleração (m/s²)',
+          label: 'Acceleration (m/s²)',
           data: this.curvePoints.map(p => p.acceleration),
           borderColor: 'rgb(75, 192, 192)',
           backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -743,7 +754,7 @@ export class SimulationComponent implements OnInit {
         plugins: {
           title: {
             display: true,
-            text: 'Curva de Aceleração por Velocidade',
+            text: 'Acceleration Curve by Velocity',
             font: {
               size: 16
             }
@@ -758,8 +769,8 @@ export class SimulationComponent implements OnInit {
                 const velocity = this.curvePoints[context.dataIndex].velocity;
                 const acceleration = context.parsed.y;
                 return [
-                  `Velocidade: ${velocity.toFixed(1)} km/h`,
-                  `Aceleração: ${acceleration.toFixed(6)} m/s²`
+                  `Velocity: ${velocity.toFixed(1)} km/h`,
+                  `Acceleration: ${acceleration.toFixed(6)} m/s²`
                 ];
               }
             }
@@ -769,7 +780,7 @@ export class SimulationComponent implements OnInit {
           x: {
             title: {
               display: true,
-              text: 'Velocidade (km/h)'
+              text: 'Velocity (km/h)'
             },
             ticks: {
               callback: function(value, index) {
@@ -780,7 +791,7 @@ export class SimulationComponent implements OnInit {
           y: {
             title: {
               display: true,
-              text: 'Aceleração (m/s²)'
+              text: 'Acceleration (m/s²)'
             },
             beginAtZero: true
           }
@@ -1200,7 +1211,7 @@ export class SimulationComponent implements OnInit {
       data: {
         labels: this.curvePoints.map(p => p.velocity.toFixed(0)),
         datasets: [{
-          label: 'Aceleração (m/s²)',
+          label: 'Acceleration (m/s²)',
           data: this.curvePoints.map(p => p.acceleration),
           borderColor: 'rgb(75, 192, 192)',
           backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -1215,7 +1226,7 @@ export class SimulationComponent implements OnInit {
         plugins: {
           title: {
             display: true,
-            text: 'Curva de Aceleração por Velocidade',
+            text: 'Acceleration Curve by Velocity',
             font: {
               size: 16
             }
@@ -1230,8 +1241,8 @@ export class SimulationComponent implements OnInit {
                 const velocity = this.curvePoints[context.dataIndex].velocity;
                 const acceleration = context.parsed.y;
                 return [
-                  `Velocidade: ${velocity.toFixed(1)} km/h`,
-                  `Aceleração: ${acceleration.toFixed(6)} m/s²`
+                  `Velocity: ${velocity.toFixed(1)} km/h`,
+                  `Acceleration: ${acceleration.toFixed(6)} m/s²`
                 ];
               }
             }
@@ -1241,7 +1252,7 @@ export class SimulationComponent implements OnInit {
           x: {
             title: {
               display: true,
-              text: 'Velocidade (km/h)'
+              text: 'Velocity (km/h)'
             },
             ticks: {
               callback: function(value, index) {
@@ -1252,7 +1263,7 @@ export class SimulationComponent implements OnInit {
           y: {
             title: {
               display: true,
-              text: 'Aceleração (m/s²)'
+              text: 'Acceleration (m/s²)'
             },
             beginAtZero: true
           }
