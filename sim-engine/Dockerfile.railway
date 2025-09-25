@@ -1,0 +1,23 @@
+# Simplified production Dockerfile for Railway/Render
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies first for better caching
+COPY requirements.production.txt .
+RUN pip install --no-cache-dir -r requirements.production.txt
+
+# Copy application code
+COPY engine ./engine
+COPY main.production.py ./main.py
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+
+# Use environment variable for port (Railway/Render compatibility)
+ENV PORT=8000
+EXPOSE $PORT
+
+# Production command
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--access-log", "--log-level", "info"]
