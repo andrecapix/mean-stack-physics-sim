@@ -1,0 +1,8 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "sim-engine/Dockerfile.railway"
+
+[deploy]
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
