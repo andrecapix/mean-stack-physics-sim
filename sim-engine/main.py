@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List, Dict
+from typing import List, Dict, Optional
 import uvicorn
 
 from engine.service import SimulationService
@@ -25,6 +25,13 @@ class StationDto(BaseModel):
     name: str = Field(..., description="Nome da estação")
     km: float = Field(..., ge=0, description="Quilometragem da estação")
 
+class AccelerationCurveConfig(BaseModel):
+    linear_velocity_threshold: float = Field(30, gt=0, le=100, description="Velocidade linear em km/h")
+    initial_acceleration: float = Field(1.1, gt=0, le=3, description="Aceleração inicial em m/s²")
+    velocity_increment: float = Field(1, gt=0, le=10, description="Incremento de velocidade em km/h")
+    loss_factor: float = Field(46, gt=0, le=1000, description="Fator de perda")
+    max_velocity: float = Field(160, gt=0, le=300, description="Velocidade máxima em km/h")
+
 class SimulationParamsDto(BaseModel):
     initial_accel: float = Field(..., gt=0, description="Aceleração inicial (m/s²)")
     threshold_speed: float = Field(..., gt=0, description="Velocidade limite para mudança (m/s)")
@@ -33,6 +40,8 @@ class SimulationParamsDto(BaseModel):
     dwell_time: float = Field(..., ge=0, description="Tempo de parada nas estações (s)")
     terminal_layover: float = Field(..., ge=0, description="Tempo de espera no terminal (s)")
     dt: float = Field(0.1, gt=0, le=1, description="Passo de integração (s)")
+    # Parâmetro opcional para curva de aceleração
+    acceleration_curve_config: Optional[AccelerationCurveConfig] = Field(None, description="Configuração da curva de aceleração")
 
 class ScheduleEntry(BaseModel):
     station: str
@@ -44,13 +53,6 @@ class SimulationResultDto(BaseModel):
     position: List[float]
     velocity: List[float]
     schedule: List[ScheduleEntry]
-
-class AccelerationCurveConfig(BaseModel):
-    linear_velocity_threshold: float = Field(30, gt=0, le=100, description="Velocidade linear em km/h")
-    initial_acceleration: float = Field(1.1, gt=0, le=3, description="Aceleração inicial em m/s²")
-    velocity_increment: float = Field(1, gt=0, le=10, description="Incremento de velocidade em km/h")
-    loss_factor: float = Field(46, gt=0, le=1000, description="Fator de perda")
-    max_velocity: float = Field(160, gt=0, le=300, description="Velocidade máxima em km/h")
 
 class AccelerationCurvePoint(BaseModel):
     velocity: float = Field(..., description="Velocidade em km/h")

@@ -14,7 +14,11 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:4200',
+    origin: [
+      'http://localhost:4200',
+      'http://localhost:4201',
+      ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : [])
+    ],
     credentials: true,
   });
 

@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Tuple, List
+from typing import Tuple, List, Optional, Dict
 
 # Tolerâncias configuráveis para regimes físicos
 VELOCITY_EPSILON_RATIO = 1e-3  # * max_speed (ex: 0.03 m/s para vmax=30m/s)
@@ -145,11 +145,18 @@ class RK4Solver:
 class TrainPhysics:
     """Classe para definir a física específica do trem"""
 
-    def __init__(self, initial_accel: float, threshold_speed: float, max_speed: float):
+    def __init__(self, initial_accel: float, threshold_speed: float, max_speed: float,
+                 acceleration_curve_config: Optional[Dict] = None):
         self.initial_accel = initial_accel
         self.threshold_speed = threshold_speed
         self.max_speed = max_speed
         self.deceleration_rate = 2.0  # m/s² para frenagem
+
+        # Configurar curva de aceleração se fornecida
+        self.acceleration_curve = None
+        if acceleration_curve_config:
+            from .acceleration_curve import AccelerationCurve
+            self.acceleration_curve = AccelerationCurve(acceleration_curve_config)
 
     def acceleration_function(self, t: float, position: float, velocity: float) -> float:
         """
@@ -166,9 +173,14 @@ class TrainPhysics:
         if velocity < self.threshold_speed:
             return self.initial_accel
         elif velocity < self.max_speed:
-            # Aceleração reduzida próximo à velocidade máxima
-            return self.initial_accel * (1 - (velocity - self.threshold_speed) /
-                                       (self.max_speed - self.threshold_speed))
+            # Se há curva de aceleração configurada, usa interpolação da curva
+            # APENAS para aceleração (valores positivos) - desaceleração continua igual
+            if self.acceleration_curve:
+                return self.acceleration_curve.get_acceleration(velocity)
+            else:
+                # Comportamento original: decremento linear
+                return self.initial_accel * (1 - (velocity - self.threshold_speed) /
+                                           (self.max_speed - self.threshold_speed))
         else:
             # Velocidade máxima atingida, sem aceleração
             return 0.0

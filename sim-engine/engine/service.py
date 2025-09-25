@@ -28,10 +28,16 @@ class SimulationService:
         total_distance = stations[-1][1] - stations[0][1]
 
         # Configurar física do trem
+        # Converter configuração da curva de aceleração se fornecida
+        curve_config = None
+        if params.acceleration_curve_config:
+            curve_config = params.acceleration_curve_config.dict()
+
         physics = TrainPhysics(
             initial_accel=params.initial_accel,
             threshold_speed=params.threshold_speed,
-            max_speed=params.max_speed
+            max_speed=params.max_speed,
+            acceleration_curve_config=curve_config
         )
 
         # Configurar solver RK4
