@@ -51,7 +51,8 @@
       "Bash(npm cache clean:*)",
       "Bash(pip cache:*)",
       "Bash(docker-compose:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(ng serve:*)"
     ],
     "deny": [],
     "ask": []
