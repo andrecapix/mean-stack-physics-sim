@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '@/modules/users/users.service';
+import { PrefetchService } from '@/common/services/prefetch.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { UserDocument } from '@/database/user.schema';
 
@@ -12,6 +13,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private prefetchService: PrefetchService,
   ) {}
 
   async login(loginDto: LoginDto): Promise<{ accessToken: string; user: any }> {
@@ -39,6 +41,9 @@ export class AuthService {
     await this.usersService.updateRefreshToken(user._id, refreshToken);
 
     console.log('User logged in successfully', { userId: user._id, email: user.email });
+
+    // Trigger smart prefetching for user dashboard data
+    this.prefetchService.triggerSmartPrefetch(user._id.toString(), 'login');
 
     return {
       accessToken,

@@ -1,11 +1,15 @@
-import { Controller, Post, Get, Param, Query, Body, Request } from '@nestjs/common';
+import { Controller, Post, Get, Param, Query, Body, Request, UseInterceptors } from '@nestjs/common';
 import { SimulationService } from './simulation.service';
 import { CreateSimulationDto, SimulationResultDto, PaginatedSimulationsDto } from './dto/simulation.dto';
+import { CacheInterceptor } from '@/common/interceptors/cache.interceptor';
+import { PrefetchService } from '@/common/services/prefetch.service';
 
 @Controller('simulation')
+@UseInterceptors(CacheInterceptor)
 export class SimulationController {
   constructor(
     private readonly simulationService: SimulationService,
+    private readonly prefetchService: PrefetchService,
   ) {}
 
   @Post()
@@ -20,8 +24,15 @@ export class SimulationController {
   }
 
   @Get(':id')
-  async getSimulation(@Param('id') id: string): Promise<SimulationResultDto> {
-    console.log('Getting simulation', { simulationId: id });
+  async getSimulation(@Param('id') id: string, @Request() req?: any): Promise<SimulationResultDto> {
+    const userId = req?.user?.userId;
+    console.log('Getting simulation', { simulationId: id, userId });
+
+    // Trigger smart prefetching for user's other simulations
+    if (userId) {
+      this.prefetchService.triggerSmartPrefetch(userId, 'simulation_view');
+    }
+
     return this.simulationService.getSimulation(id);
   }
 
@@ -33,6 +44,11 @@ export class SimulationController {
   ): Promise<PaginatedSimulationsDto> {
     const userId = req?.user?.userId;
     console.log('Getting simulations', { userId, page, limit });
+
+    // Trigger smart prefetching for next page
+    if (userId) {
+      this.prefetchService.triggerSmartPrefetch(userId, 'history_view');
+    }
 
     return this.simulationService.getSimulations(page, limit, userId);
   }

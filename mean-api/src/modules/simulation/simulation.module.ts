@@ -4,6 +4,7 @@ import { SimulationController } from './simulation.controller';
 import { SimulationService } from './simulation.service';
 import { Simulation, SimulationSchema } from '@/database/simulation.schema';
 import { RedisCacheModule } from '../cache/cache.module';
+import { CacheInterceptor } from '@/common/interceptors/cache.interceptor';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { RedisCacheModule } from '../cache/cache.module';
     RedisCacheModule,
   ],
   controllers: [SimulationController],
-  providers: [SimulationService],
+  providers: [SimulationService, CacheInterceptor],
   exports: [SimulationService],
 })
 export class SimulationModule {}

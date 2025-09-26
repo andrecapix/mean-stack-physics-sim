@@ -21,6 +21,28 @@ export class SimulationService {
 
   async createSimulation(createSimulationDto: CreateSimulationDto, userId?: string): Promise<{ id: string; status: string }> {
     try {
+      // Check cache for existing simulation with same parameters
+      const cachedResult = await this.cacheService.getSimulationByParams(createSimulationDto.params);
+      if (cachedResult) {
+        console.log('Found cached simulation result', { userId, cached: true });
+
+        // Create new simulation record but with cached results
+        const simulation = new this.simulationModel({
+          params: createSimulationDto.params,
+          status: 'completed',
+          results: cachedResult,
+          userId,
+        });
+
+        const savedSimulation = await simulation.save();
+        console.log('Simulation created with cached results', { simulationId: savedSimulation._id, userId });
+
+        return {
+          id: (savedSimulation._id as any).toString(),
+          status: 'completed',
+        };
+      }
+
       const simulation = new this.simulationModel({
         params: createSimulationDto.params,
         status: 'pending',
@@ -63,6 +85,15 @@ export class SimulationService {
 
   async getSimulations(page: number = 1, limit: number = 10, userId?: string): Promise<PaginatedSimulationsDto> {
     try {
+      // Try to get from cache first
+      if (userId) {
+        const cached = await this.cacheService.getCachedUserHistory(userId, page, limit);
+        if (cached) {
+          console.log('Found cached user history', { userId, page, limit });
+          return cached;
+        }
+      }
+
       const skip = (page - 1) * limit;
       const filter = userId ? { userId } : {};
 
@@ -78,13 +109,21 @@ export class SimulationService {
 
       const data = simulations.map(sim => this.mapToResultDto(sim));
 
-      return {
+      const result = {
         data,
         total,
         page,
         limit,
         totalPages: Math.ceil(total / limit),
       };
+
+      // Cache the result for user-specific queries
+      if (userId) {
+        await this.cacheService.cacheUserHistory(userId, page, limit, result);
+        console.log('Cached user history', { userId, page, limit });
+      }
+
+      return result;
     } catch (error) {
       console.error('Failed to get simulations', { error: error.message, userId });
       throw new InternalServerErrorException('Failed to retrieve simulations');
@@ -133,7 +172,15 @@ export class SimulationService {
         status: 'completed',
       });
 
-      console.info('Simulation completed successfully', { simulationId });
+      // Cache the simulation result by parameters for future identical simulations
+      await this.cacheService.cacheSimulationByParams(simulation.params, results, 3600); // 1 hour TTL
+
+      // Invalidate user history cache since they have a new simulation
+      if (simulation.userId) {
+        await this.cacheService.invalidateUserCache(simulation.userId);
+      }
+
+      console.info('Simulation completed successfully', { simulationId, cached: true });
     } catch (error) {
       console.error('Simulation processing failed', {
         error: error.message,

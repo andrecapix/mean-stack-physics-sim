@@ -1,8 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { redisStore } from 'cache-manager-redis-yet';
 import { CacheService } from './cache.service';
+import { PrefetchService } from '@/common/services/prefetch.service';
+import { SimulationModule } from '@/modules/simulation/simulation.module';
 
 @Module({
   imports: [
@@ -23,19 +25,17 @@ import { CacheService } from './cache.service';
         console.log('🔗 Connecting to Redis:', redisUrl.substring(0, 20) + '...');
 
         return {
-          store: redisStore,
-          url: redisUrl,
-          ttl: 300, // 5 minutes default TTL
-          max: 1000, // maximum number of items in cache
-          // Redis-specific options
-          retryAttempts: 3,
-          retryDelay: 1000,
+          store: await redisStore({
+            url: redisUrl,
+            ttl: 300000, // 5 minutes in milliseconds
+          }),
         };
       },
       inject: [ConfigService],
     }),
+    forwardRef(() => SimulationModule),
   ],
-  providers: [CacheService],
-  exports: [CacheModule, CacheService],
+  providers: [CacheService, PrefetchService],
+  exports: [CacheModule, CacheService, PrefetchService],
 })
 export class RedisCacheModule {}
