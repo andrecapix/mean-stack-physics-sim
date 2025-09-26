@@ -1,7 +1,7 @@
 {
-  "buildCommand": "cd mean-ui && npm run build",
+  "buildCommand": "cd mean-ui && npm ci && npm run build --prod",
   "outputDirectory": "mean-ui/dist/mean-ui",
-  "installCommand": "cd mean-ui && npm install",
+  "installCommand": "cd mean-ui && npm ci",
   "rewrites": [
     {
       "source": "/(.*)",
