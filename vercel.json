@@ -1,11 +1,20 @@
 {
-  "buildCommand": "cd mean-ui && npm ci && npm run build --prod",
-  "outputDirectory": "mean-ui/dist/mean-ui",
-  "installCommand": "cd mean-ui && npm ci",
-  "rewrites": [
+  "version": 2,
+  "name": "mean-stack-physics-sim",
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "mean-ui/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/mean-ui",
+        "framework": "angular"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
