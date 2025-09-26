@@ -2,13 +2,24 @@
 
 Guia central para desenvolvimento do sistema de simulação física usando stack MEAN + microserviço Python.
 
-## Status Atual: Fase 4 ✅ COMPLETA + Curva de Aceleração ✅
+## Status Atual: Fase 5 ✅ INICIADA - Sistema Avançado de Cache & Performance
 
-**Data de Conclusão**: 18/09/2025
+**Data de Conclusão da Fase 4**: 18/09/2025
 **Feature Adicional**: 22/09/2025 - Sistema de Curva de Aceleração
-**Próxima Fase**: Fase 5 - Sistema Avançado de Análise & Comparação
+**Fase 5 Iniciada**: 26/09/2025 - Sistema Redis Cache Completo
+**Próxima Etapa**: Comparação Side-by-Side & Analytics Dashboard
 
-### Conquistas da Fase 4 (Interface Avançada)
+### Conquistas da Fase 5 (Sistema Avançado de Cache & Performance)
+- ✅ **Redis Cache System**: Sistema completo de cache com Redis para produção
+- ✅ **Smart Prefetching**: Prefetch inteligente baseado em comportamento do usuário
+- ✅ **Cache Interceptor**: Cache automático de endpoints GET com TTL diferenciado
+- ✅ **Simulation Deduplication**: Cache de simulações por parâmetros evita duplicatas
+- ✅ **User History Cache**: Cache paginado do histórico com invalidação inteligente
+- ✅ **Performance Headers**: Headers de debug (X-Cache: HIT/MISS) para monitoramento
+- ✅ **Background Processing**: Queue de prefetch processada automaticamente
+- ✅ **Production Ready**: Deploy completo no Railway com sistema Redis ativo
+
+### Conquistas da Fase 4 (Interface Avançada) ✅ COMPLETA
 - ✅ **Dashboard Principal**: Overview personalizado com métricas em tempo real
 - ✅ **Sistema de Histórico**: Lista paginada com filtros avançados e busca textual
 - ✅ **Curva de Aceleração**: Sistema completo de configuração e visualização de curvas
@@ -425,6 +436,57 @@ logger.error('Physics calculation failed', { error, params });
 - [ ] Background processing e filas de processamento
 - [ ] WebSocket integration para updates em tempo real
 - [ ] CI/CD pipeline com deployment automatizado
+
+## Sistema Redis Cache - Fase 5 (Implementado)
+
+### Arquitetura de Cache Completa
+
+**Cache Service** (`mean-api/src/modules/cache/cache.service.ts`)
+- Métodos avançados: `get()`, `set()`, `del()`, `getOrSet()`
+- Geradores de chaves inteligentes para simulações, usuários e paginação
+- TTL diferenciado: simulações (1h), histórico (5min), perfil (15min)
+- Invalidação automática de cache quando usuário cria nova simulação
+
+**Smart Prefetch Service** (`mean-api/src/common/services/prefetch.service.ts`)
+- **Login Trigger**: Prefetch automático de dashboard e histórico na primeira página
+- **Simulation View Trigger**: Carrega outras simulações do usuário
+- **History View Trigger**: Precarrega próxima página do histórico
+- **Background Queue**: Processa prefetch a cada 30 segundos
+- **Adaptive Loading**: Inteligência para carregar página 2 se página 1 estiver completa
+
+**Cache Interceptor** (`mean-api/src/common/interceptors/cache.interceptor.ts`)
+- Cache automático para todos os endpoints GET
+- Headers de debugging: `X-Cache: HIT/MISS`, `X-Cache-Key: endpoint_key`
+- TTL por rota: simulações individuais (1h), listas (5min), perfil (15min)
+- Chaves consistentes com parâmetros ordenados
+
+### Integração nos Services
+
+**SimulationService** (`mean-api/src/modules/simulation/simulation.service.ts:25`)
+- **Antes de criar simulação**: Verifica cache por parâmetros idênticos
+- **Simulação encontrada**: Retorna imediatamente com status 'completed'
+- **Após processamento**: Cache resultado + invalidação do histórico do usuário
+- **Performance**: Elimina simulações duplicadas, response time <10ms
+
+**AuthService** (`mean-api/src/modules/auth/auth.service.ts:46`)
+- **Trigger no login**: Agenda prefetch inteligente de dados do dashboard
+- **Background loading**: Primeira e segunda páginas do histórico
+- **User experience**: Dashboard carrega instantaneamente após login
+
+### Performance Metrics Esperadas
+
+- **Cache Hit Rate**: 60-80% em operações repetidas
+- **Response Time**: Redução de 200ms → 20ms em queries cacheadas
+- **Database Load**: 50% redução em consultas MongoDB
+- **User Experience**: Dashboard instantâneo, navegação fluida
+- **Duplicate Elimination**: 100% simulações idênticas evitadas
+
+### Configuração de Produção
+
+**Redis URL**: Configurada via variável `REDIS_URL` no Railway
+**Fallback**: Cache em memória para desenvolvimento/testes
+**Monitoring**: Headers X-Cache permitem monitoramento em produção
+**TTL Strategy**: Cache longo para dados estáticos, curto para dados dinâmicos
 
 ## Componentes Implementados (Fase 4)
 
